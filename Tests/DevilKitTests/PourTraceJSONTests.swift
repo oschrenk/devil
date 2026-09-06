@@ -96,4 +96,38 @@ struct PourTraceJSONTests {
     #expect(original.json(brew: "b").contains("[12.3, 102.4]"))
     #expect(original.json(brew: "b").contains("[12.4, -3.5]"))
   }
+
+  /// What too much precision costs.
+  ///
+  /// Two readings inside the same hundredth round to one instant, and the
+  /// second is not later than the first any more, so `append` drops it as a
+  /// reading that went backwards. The scale reports about ten times a second,
+  /// which leaves ten hundredths between readings, so this needs the scale to
+  /// speed up tenfold before it can happen.
+  @Test("Readings inside the same hundredth collapse to the first")
+  func collidingReadings() {
+    var original = PourTrace()
+    original.append(seconds: 1.234, grams: 10)
+    original.append(seconds: 1.236, grams: 20)
+    original.append(seconds: 1.244, grams: 30)
+
+    let parsed = PourTrace.parse(json: original.json(brew: "b"))
+
+    // 1.236 rounds up to 1.24, so 1.244 is the one that collides and goes.
+    #expect(original.samples.count == 3)
+    #expect(parsed?.trace.samples.map(\.seconds) == [1.23, 1.24])
+    #expect(parsed?.trace.samples.map(\.grams) == [10, 20])
+  }
+
+  /// A tenth of a gram is what the scale resolves, so nothing finer is real.
+  @Test("A weight finer than a tenth rounds to one")
+  func gramsRoundToATenth() {
+    var original = PourTrace()
+    original.append(seconds: 1, grams: 102.44)
+    original.append(seconds: 2, grams: 102.46)
+
+    let parsed = PourTrace.parse(json: original.json(brew: "b"))
+
+    #expect(parsed?.trace.samples.map(\.grams) == [102.4, 102.5])
+  }
 }
