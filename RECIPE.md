@@ -21,7 +21,7 @@ A complex Switch recipe that does **three things at once**:
 - **Total water through bed**: 250 g
 - **Brew ratio**: 1 : 16.7
 - **Roast target**: Medium
-- **Brew water composition**: ~50 % tap + ~50 % demineralized
+- **Brew water composition**: ~55 % tap + ~45 % demineralized, as brewed (see the water plan note)
 - **Initial brew temp**: 92 °C
 - **Mid-brew bed temp target**: ~75 °C
 - **Total brew time**: ~3:30
@@ -60,8 +60,12 @@ A complex Switch recipe that does **three things at once**:
 - Room temperature (~20 °C)
 - Held in Beaker B
 
-> Total demin going through the bed ≈ 113 g (from the kettle) + 13 g (added mid-brew to cool the kettle) = ~126 g, against ~124 g tap (the 25 g buffer largely stays in the kettle).
-> Cup ends up roughly **50/50 tap : demin**.
+> The kettle holds one blend.
+> Every pour takes tap and demin in the ratio the kettle is at.
+> The 26 g left behind is blended too, not pure tap.
+> Pour by pour, the bed receives **137 g tap against 113 g demin**.
+> The cup lands near **55/45 tap : demin**.
+> A true 50/50 cup needs **141 g in Beaker A**, not 113 g, and leaves 54 g behind.
 
 #### Optional: Single-Fill Kettle Optimization
 
@@ -78,7 +82,7 @@ To skip the kettle refill between preheat and brew:
 
 #### 1. Prep
 
-1. Grind 15 g coffee at K-Ultra **8.0**.
+1. Grind 15 g coffee at K-Ultra **7.8**.
 2. Place paper filter in Switch; sit Switch on top of Hario server.
 3. Pre-measure into beakers:
    - **Beaker A**: 113 g demineralized water
@@ -127,7 +131,7 @@ To skip the kettle refill between preheat and brew:
 
 - **Close switch** (down)
 - Pour 13 ml cold demin from Beaker B into kettle
-- This drops water temp in kettle to ~75 °C
+- This drops water temp in kettle to ~83 °C, and the bed to the ~75 °C target
 - Pour 75 g
 - Swirl
 - Immersion phase begins
