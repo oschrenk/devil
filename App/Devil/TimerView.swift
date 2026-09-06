@@ -11,6 +11,7 @@ import SwiftUI
 struct TimerView: View {
   let recipe: Recipe
   let brew: RunningBrew
+  let scale: ScaleConnection
 
   @Environment(\.dismiss) private var dismiss
   @State private var clock = BrewClock()
@@ -36,7 +37,12 @@ struct TimerView: View {
       let progress = recipe.progress(atSeconds: max(0, Int(seconds.rounded(.down))))
 
       VStack(spacing: 0) {
-        Clock(progress: progress, countdown: countdown, isHeld: clock.isHeld)
+        Clock(
+          progress: progress,
+          countdown: countdown,
+          isHeld: clock.isHeld,
+          hasScale: scale.state.isConnected
+        )
         if clock.isHeld {
           HeldNote()
         } else {
@@ -78,6 +84,7 @@ private struct Clock: View {
   let progress: BrewProgress
   let countdown: Int
   let isHeld: Bool
+  let hasScale: Bool
 
   private var isCountingDown: Bool {
     countdown > 0
@@ -105,6 +112,20 @@ private struct Clock: View {
         .foregroundStyle(tint)
       ProgressView(value: isCountingDown ? 0 : progress.fraction)
         .tint(progress.isComplete ? .green : .accentColor)
+      // Under the bar and out of the way. It answers one question, asked only
+      // occasionally: is the scale still there. With no scale it leaves no gap
+      // behind, and the screen is the one it was before any of this existed.
+      if hasScale {
+        HStack(spacing: 4) {
+          Spacer()
+          Image(systemName: "scalemass.fill")
+          Text("Scale")
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Scale connected")
+      }
     }
     .padding(.vertical, 8)
   }
@@ -231,6 +252,10 @@ private struct HeldNote: View {
 
 #Preview {
   NavigationStack {
-    TimerView(recipe: .switchWaterAndTempManaged, brew: RunningBrew(tappedAt: .now))
+    TimerView(
+      recipe: .switchWaterAndTempManaged,
+      brew: RunningBrew(tappedAt: .now),
+      scale: ScaleConnection()
+    )
   }
 }

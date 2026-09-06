@@ -145,7 +145,7 @@ struct ContentView: View {
     .task { scale.begin() }
     .fullScreenCover(item: $running) { brew in
       NavigationStack {
-        TimerView(recipe: recipe, brew: brew)
+        TimerView(recipe: recipe, brew: brew, scale: scale)
       }
     }
   }
