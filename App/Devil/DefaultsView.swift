@@ -61,6 +61,11 @@ struct DefaultsView: View {
       }
 
       Section {
+        // Two numbers, because only one of the three scales. A single total
+        // would have to assume a number of people, and this screen sets what
+        // every brew starts from rather than one of them.
+        LabelledValue(label: "Total", value: preheatTotal)
+          .fontWeight(.semibold)
         Stepper(value: $defaults.preheat.cone, in: 0 ... 400, step: PreheatPlan.step) {
           LabelledValue(label: "Cone", value: defaults.preheat.cone.millilitres)
         }
@@ -81,6 +86,12 @@ struct DefaultsView: View {
     }
     .navigationTitle("Defaults")
     .navigationBarTitleDisplayMode(.inline)
+  }
+
+  /// The part that never changes, and the part that does.
+  private var preheatTotal: String {
+    let each = Format.number(defaults.preheat.perCup)
+    return "\(defaults.preheat.fixed.millilitres) + \(each) each"
   }
 
   /// What the same size reads on the grinders you did not pick.

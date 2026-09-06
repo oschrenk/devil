@@ -236,4 +236,12 @@ struct RatioTests {
     #expect(Format.ratio(15) == "1 : 15")
     #expect(Format.ratio(16.5) == "1 : 16.5")
   }
+
+  /// The slack warms nothing, so counting it here would put the preheat total
+  /// out of step with the one the brew screen reports.
+  @Test("The fixed part of a preheat leaves out the cup and the slack")
+  func fixedPreheat() {
+    #expect(PreheatPlan.standard.fixed == 200)
+    #expect(PreheatPlan(perCup: 60, vessel: 40, cone: 120, safety: 30).fixed == 160)
+  }
 }

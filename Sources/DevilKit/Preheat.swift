@@ -22,6 +22,14 @@ public struct PreheatPlan: Equatable, Sendable {
     self.safety = safety
   }
 
+  /// The cone and the vessel, which are the same however many are drinking.
+  ///
+  /// The slack is not in here. It warms nothing, and adding it would make the
+  /// preheat total disagree with the one the brew screen reports.
+  public var fixed: Double {
+    cone + vessel
+  }
+
   /// Five millilitres a press.
   ///
   /// Ten was too coarse to settle on a kettle fill: the boil figure is the sum
