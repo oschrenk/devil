@@ -40,7 +40,11 @@ final class ScaleConnection: NSObject {
   private(set) var found: [FoundScale] = []
   private(set) var weight: Double?
   private(set) var scaleSeconds: Double?
+  /// The last press, and how many have arrived. The count is what a view
+  /// observes: two stops in a row are the same value, and watching the value
+  /// alone would notice only the first.
   private(set) var lastButton: AcaiaButton?
+  private(set) var buttonCount = 0
 
   /// The scale to reconnect to, remembered across launches. A peripheral's
   /// identifier is stable per app, so this is all it takes to skip the picker
@@ -177,6 +181,9 @@ extension ScaleConnection: CBCentralManagerDelegate {
   ) {
     pulse?.invalidate()
     weight = nil
+    // Deliberately not a button event. A scale carried out of range has not
+    // stopped anything, and a brew must not end because Bluetooth did.
+    lastButton = nil
     writeCharacteristic = nil
     state = rememberedID == nil ? .noneChosen : .searching(name: peripheral.name ?? "Scale")
     // Reconnect on its own. A scale that was carried out of the kitchen and
@@ -234,6 +241,7 @@ extension ScaleConnection: CBPeripheralDelegate {
       scaleSeconds = seconds
     case let .button(button, grams, seconds):
       lastButton = button
+      buttonCount += 1
       if let grams {
         weight = grams
       }

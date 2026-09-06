@@ -62,6 +62,19 @@ struct TimerView: View {
           scale.send(command)
         }
       }
+      // The other half of the sync. Pressing stop on the scale holds the
+      // phone's clock, through the same control the Pause button uses.
+      //
+      // Keyed on the count rather than the button, so a second stop after a
+      // resume is noticed. Only a press arrives here: a scale that goes out of
+      // range clears the button instead of reporting one, so losing Bluetooth
+      // cannot end a brew.
+      .onChange(of: scale.buttonCount) { _, _ in
+        let reaction = ScaleControl.reaction(to: scale.lastButton, clockIsHeld: clock.isHeld)
+        if reaction == .holdTheClock {
+          clock.hold(raw: raw)
+        }
+      }
     }
     .navigationTitle("Brewing")
     .navigationBarTitleDisplayMode(.inline)
