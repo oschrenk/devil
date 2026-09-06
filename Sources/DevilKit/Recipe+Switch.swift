@@ -69,7 +69,9 @@ public extension Recipe {
         actions: [.drain]
       ),
       Step(
-        start: BrewTime(minutes: 3, seconds: 30),
+        // Observed, from the spreadsheet's "Finish at" column, which scales
+        // with the dose. RECIPE.md read 3:30 off the 30 g row.
+        start: BrewTime(minutes: 3, seconds: 15),
         title: "Done",
         switchPosition: .open,
         actions: [.finish]

@@ -25,7 +25,7 @@ A complex Switch recipe that does **three things at once**:
 - **Initial brew temp**: 92 °C
 - **Kettle temp at the last pour**: ~85.5 °C, measured after it cools through the brew
 - **Mid-brew temp target**: 75 °C
-- **Total brew time**: ~3:30
+- **Total brew time**: ~3:15, observed
 - **Preheat kettle setting**: 96 °C (max usable at Guatemala City altitude before bubbling)
 
 ### Gear
@@ -144,7 +144,7 @@ To skip the kettle refill between preheat and brew:
 - **Open switch** (up)
 - Bed drains through
 
-**~3:30 — Done**
+**~3:15 — Done**
 
 - Last drips into server
 

@@ -5,11 +5,11 @@ import Testing
 struct ScheduleTests {
   let recipe = Recipe.switchWaterAndTempManaged
 
-  @Test("The schedule runs 0:00 to 3:30 in seven steps")
+  @Test("The schedule runs 0:00 to 3:15 in seven steps")
   func shape() {
     #expect(recipe.steps.count == 7)
     #expect(recipe.steps.first?.start == BrewTime(minutes: 0, seconds: 0))
-    #expect(recipe.totalTime == BrewTime(minutes: 3, seconds: 30))
+    #expect(recipe.totalTime == BrewTime(minutes: 3, seconds: 15))
   }
 
   @Test("Every step names a switch position, and the recipe flips it three times")
@@ -32,7 +32,7 @@ struct ScheduleTests {
   func durations() {
     let durations = recipe.steps.map { recipe.duration(of: $0) }
 
-    #expect(durations == [10, 20, 30, 45, 45, 60, nil])
+    #expect(durations == [10, 20, 30, 45, 45, 45, nil])
   }
 
   @Test("The current step is the last one that has started")
@@ -41,7 +41,7 @@ struct ScheduleTests {
     #expect(recipe.step(atSeconds: 29)?.title == "Swirl")
     #expect(recipe.step(atSeconds: 30)?.title == "Pour 2")
     #expect(recipe.step(atSeconds: 110)?.title == "Cold add and swirl")
-    #expect(recipe.step(atSeconds: 210)?.title == "Done")
+    #expect(recipe.step(atSeconds: 195)?.title == "Done")
     #expect(recipe.step(atSeconds: 999)?.title == "Done")
   }
 
