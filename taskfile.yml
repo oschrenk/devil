@@ -74,6 +74,12 @@ tasks:
         BUNDLE_ID="$(plutil -extract CFBundleIdentifier raw "{{.APP_PATH}}/Info.plist")"
         xcrun simctl launch "{{.SIMULATOR}}" "$BUNDLE_ID"
     silent: true
+  # Redraws the app icon from scripts/make-icon.swift. The PNG is committed so
+  # a build needs no extra step; this is only for changing the artwork.
+  icon:
+    cmds:
+      - swift scripts/make-icon.swift App/Devil/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+    silent: true
   format:
     cmds:
       # --swiftversion matches swift-tools-version in Package.swift and

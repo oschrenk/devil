@@ -49,6 +49,7 @@ targets:
         # No hand-maintained Info.plist: the keys below generate one at build
         # time, which is one fewer file to keep in step with this spec.
         GENERATE_INFOPLIST_FILE: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_CFBundleDisplayName: Devil
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
