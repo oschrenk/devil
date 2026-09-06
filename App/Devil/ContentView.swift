@@ -166,21 +166,28 @@ private struct LabelledValue: View {
 private struct StepRow: View {
   let step: Step
 
+  /// Grows with the reader's text size. A fixed width holds at the default and
+  /// then breaks `0:00` across two lines once the type is larger, which is the
+  /// one string in the row that must never wrap.
+  @ScaledMetric private var timeWidth: Double = 44
+
   var body: some View {
     HStack(alignment: .firstTextBaseline) {
       Text(step.start.formatted)
         .foregroundStyle(.secondary)
-        .frame(width: 44, alignment: .leading)
+        .fixedSize()
+        .frame(minWidth: timeWidth, alignment: .leading)
       VStack(alignment: .leading, spacing: 2) {
         Text(step.title)
         Text(step.switchPosition == .open ? "switch open" : "switch closed")
           .font(.caption)
           .foregroundStyle(.tertiary)
       }
-      Spacer()
+      Spacer(minLength: 4)
       if step.poured > 0 {
         Text(step.poured.grams)
           .foregroundStyle(.secondary)
+          .fixedSize()
       }
     }
   }
