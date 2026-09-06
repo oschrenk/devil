@@ -133,6 +133,17 @@ final class ScaleConnection: NSObject {
     let kind: CBCharacteristicWriteType =
       characteristic.properties.contains(.writeWithoutResponse) ? .withoutResponse : .withResponse
     peripheral.writeValue(Data(command.bytes), for: characteristic, type: kind)
+
+    // Asking the scale to start means expecting it to speak again, so the
+    // silence clock restarts here. Without this, a resume reads the silence
+    // the scale kept all through the pause as a fresh stop, and the brew holds
+    // itself again the instant it is let go.
+    if command == .startTimer || command == .resetTimer {
+      lastTimerAt = .now
+      watch = ScaleTimerWatch()
+      timerIsRunning = nil
+      timerHasPaused = false
+    }
   }
 
   private func connectToRemembered() {
