@@ -124,17 +124,16 @@ struct ContentView: View {
         }
 
         Section {
-          // What to put in the kettle, and what to keep out of it. The first
-          // three go in and get boiled. The last waits in its own beaker.
-          LabelledValue(label: "Kettle", value: recipe.tapToBoil.millilitres)
-            .fontWeight(.semibold)
-          LabelledValue(label: "Tap", value: recipe.kettleFill.tap.grams)
+          // What to measure out. The first two go in the kettle and boil.
+          // The last waits in its own beaker and goes in cold.
+          //
+          // The whole boil is tap water, so the row says so. What that figure
+          // is made of is in the footer rather than a row of its own.
+          LabelledValue(label: "Tap", value: recipe.tapToBoil.millilitres)
           LabelledValue(label: "Demineralised", value: recipe.kettleFill.demineralized.grams)
             .accessibilityLabel("Demineralised water, into the kettle")
-          // Named for the step that uses it, so the setup screen and the
-          // timer call the same water by the same name.
-          LabelledValue(label: "Cold add", value: recipe.cooler.amount.grams)
-            .accessibilityLabel("Cold add, demineralised water held back")
+          LabelledValue(label: "Cooling", value: recipe.cooler.amount.grams)
+            .accessibilityLabel("Cooling water, demineralised and held back")
         } header: {
           Text("Water")
         } footer: {
