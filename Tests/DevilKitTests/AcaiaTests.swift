@@ -77,7 +77,8 @@ struct AcaiaMessageTests {
     #expect(decoder.append(eventFrame(5, [0xDF, 0x06, 0x00, 0x00, 0x02, 0x00]))
       == [.weight(grams: 17.59)])
     #expect(decoder.append(eventFrame(5, negative)) == [.weight(grams: -175.9)])
-    #expect(decoder.append(eventFrame(5, [0xDF, 0x06, 0x00, 0x00, 0x00, 0x00])) == [.other])
+    #expect(decoder.append(eventFrame(5, [0xDF, 0x06, 0x00, 0x00, 0x00, 0x00]))
+      == [.unhandled(command: 12, type: 5)])
   }
 
   @Test("A timer decodes to minutes, seconds and tenths")

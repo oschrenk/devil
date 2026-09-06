@@ -16,12 +16,12 @@ public struct BrewStartSignal: Equatable, Sendable {
   /// What to send the scale, given the brew clock. Empty on every call but the
   /// first one at or past 0:00.
   ///
-  /// A reset goes first. A scale left running from an earlier brew would
-  /// otherwise carry on from wherever it stopped, and its time would mean
-  /// nothing.
+  /// Only a start. The reset belongs at the moment the button is pressed, three
+  /// seconds earlier: sending both here makes the scale beep twice at 0:00,
+  /// which is the one moment a single unambiguous beep is worth having.
   public mutating func commands(elapsed: Double) -> [AcaiaCommand] {
     guard !sent, elapsed >= 0 else { return [] }
     sent = true
-    return [.resetTimer, .startTimer]
+    return [.startTimer]
   }
 }

@@ -23,8 +23,10 @@ struct TimerView: View {
     let raw = Date.now.timeIntervalSince(brew.start)
     if clock.isHeld {
       clock.release(raw: raw)
+      scale.send(.startTimer)
     } else {
       clock.hold(raw: raw)
+      scale.send(.stopTimer)
     }
   }
 
@@ -91,7 +93,14 @@ struct TimerView: View {
     }
     // A brew is followed with the phone on the counter and wet hands. Nothing
     // touches the screen for three minutes, so stop it going dark.
-    .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
+    .onAppear {
+      UIApplication.shared.isIdleTimerDisabled = true
+      // Zero the scale now rather than at 0:00. A scale left running from an
+      // earlier brew would otherwise carry on from wherever it stopped, and
+      // resetting it alongside the start would beep twice at the one moment
+      // that wants a single unambiguous beep.
+      scale.send(.resetTimer)
+    }
     .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
   }
 }

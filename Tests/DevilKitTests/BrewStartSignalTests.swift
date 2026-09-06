@@ -13,13 +13,14 @@ struct BrewStartSignalTests {
     #expect(signal.hasSent == false)
   }
 
-  /// The reset matters as much as the start. A scale left running from an
-  /// earlier brew would carry on from wherever it stopped.
-  @Test("A reset then a start go out at 0:00")
+  /// Exactly one command, so the scale beeps once at the moment the pouring
+  /// starts. The reset goes out three seconds earlier, when the button is
+  /// pressed.
+  @Test("A single start goes out at 0:00")
   func sendsAtZero() {
     var signal = BrewStartSignal()
 
-    #expect(signal.commands(elapsed: 0) == [.resetTimer, .startTimer])
+    #expect(signal.commands(elapsed: 0) == [.startTimer])
     #expect(signal.hasSent)
   }
 
@@ -31,7 +32,7 @@ struct BrewStartSignalTests {
     let ticks = stride(from: -3.0, through: 200.0, by: 0.5)
     let sent = ticks.flatMap { signal.commands(elapsed: $0) }
 
-    #expect(sent == [.resetTimer, .startTimer])
+    #expect(sent == [.startTimer])
   }
 
   /// A brew joined late, because the app was reopened mid-brew, still needs
@@ -40,7 +41,7 @@ struct BrewStartSignalTests {
   func startsLate() {
     var signal = BrewStartSignal()
 
-    #expect(signal.commands(elapsed: 42) == [.resetTimer, .startTimer])
+    #expect(signal.commands(elapsed: 42) == [.startTimer])
     #expect(signal.commands(elapsed: 43).isEmpty)
   }
 }

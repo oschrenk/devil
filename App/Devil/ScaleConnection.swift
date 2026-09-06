@@ -107,8 +107,13 @@ final class ScaleConnection: NSObject {
   }
 
   func send(_ command: AcaiaCommand) {
-    guard let peripheral, let writeCharacteristic else { return }
-    peripheral.writeValue(Data(command.bytes), for: writeCharacteristic, type: .withoutResponse)
+    guard let peripheral, let characteristic = writeCharacteristic else { return }
+    // Ask the characteristic which kind of write it takes. Sending
+    // `.withoutResponse` to one that does not support it is undefined, and this
+    // scale answers by dropping the link.
+    let kind: CBCharacteristicWriteType =
+      characteristic.properties.contains(.writeWithoutResponse) ? .withoutResponse : .withResponse
+    peripheral.writeValue(Data(command.bytes), for: characteristic, type: kind)
   }
 
   private func connectToRemembered() {
@@ -187,7 +192,9 @@ extension ScaleConnection: CBCentralManagerDelegate {
     writeCharacteristic = nil
     state = rememberedID == nil ? .noneChosen : .searching(name: peripheral.name ?? "Scale")
     // Reconnect on its own. A scale that was carried out of the kitchen and
-    // brought back should not need the picker again.
+    // brought back should not need the picker again. CoreBluetooth holds an
+    // outstanding connect until the peripheral reappears, so this costs
+    // nothing while it is away.
     if rememberedID != nil {
       central.connect(peripheral)
     }
@@ -214,8 +221,18 @@ extension ScaleConnection: CBPeripheralDelegate {
         peripheral.setNotifyValue(true, for: characteristic)
       }
     }
-    guard writeCharacteristic != nil else { return }
-    // Without these two the scale accepts the connection and then says nothing.
+  }
+
+  /// The handshake goes here, not in characteristic discovery.
+  ///
+  /// Identify and subscribe are pointless until the scale can answer, and
+  /// sending them mid-discovery is talking over it.
+  func peripheral(
+    _ peripheral: CBPeripheral,
+    didUpdateNotificationStateFor characteristic: CBCharacteristic,
+    error _: Error?
+  ) {
+    guard characteristic.uuid == notify, characteristic.isNotifying else { return }
     send(.identify)
     send(.subscribe)
     startPulse()
@@ -250,7 +267,7 @@ extension ScaleConnection: CBPeripheralDelegate {
       }
     case let .settings(battery, _):
       state = .connected(name: peripheral.name ?? "Scale", battery: battery)
-    case .other:
+    case .unhandled:
       break
     }
   }

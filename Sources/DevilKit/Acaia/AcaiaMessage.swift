@@ -14,8 +14,9 @@ public enum AcaiaMessage: Equatable, Sendable {
   /// both a weight and a time; a start on newer firmware carries neither.
   case button(AcaiaButton, grams: Double?, seconds: Double?)
   case settings(battery: Int, isGrams: Bool)
-  /// A frame that decoded cleanly and means nothing to this app.
-  case other
+  /// A frame that decoded cleanly and means nothing to this app, carrying
+  /// enough of itself to be recognised in a log.
+  case unhandled(command: UInt8, type: UInt8)
 }
 
 /// Reads the scale's stream.
@@ -85,31 +86,36 @@ public struct AcaiaDecoder: Sendable {
     case 8:
       return (settings(Array(bytes[(start + 3) ..< (end - 2)])), end - start)
     default:
-      return (.other, end - start)
+      return (.unhandled(command: command, type: 0), end - start)
     }
   }
 
   static func settings(_ body: [UInt8]) -> AcaiaMessage {
-    guard body.count >= 3 else { return .other }
+    guard body.count >= 3 else { return .unhandled(command: 8, type: 0) }
     return .settings(battery: Int(body[1] & 0x7F), isGrams: body[2] == 2)
   }
 
   static func message(type: UInt8, payload: [UInt8]) -> AcaiaMessage {
+    let unhandled = AcaiaMessage.unhandled(command: 12, type: type)
     switch type {
     case 5:
-      return AcaiaRecords.weight(payload).map { AcaiaMessage.weight(grams: $0) } ?? .other
+      return AcaiaRecords.weight(payload).map { AcaiaMessage.weight(grams: $0) } ?? unhandled
     case 7:
-      return AcaiaRecords.time(payload).map { AcaiaMessage.timer(seconds: $0) } ?? .other
+      return AcaiaRecords.time(payload).map { AcaiaMessage.timer(seconds: $0) } ?? unhandled
     case 8:
       let records = AcaiaRecords.walk([8] + payload)
-      guard let key = records.key, let button = AcaiaButton(rawValue: key) else { return .other }
+      // A key code outside the four known ones is reported as itself, because
+      // that is what an unmapped button looks like from here.
+      guard let key = records.key, let button = AcaiaButton(rawValue: key) else {
+        return .unhandled(command: 12, type: records.key ?? 0)
+      }
       return .button(button, grams: records.weight, seconds: records.time)
     case 11:
       // A heartbeat wraps one record, three bytes in.
-      guard payload.count > 3 else { return .other }
+      guard payload.count > 3 else { return unhandled }
       return message(type: payload[2], payload: Array(payload.dropFirst(3)))
     default:
-      return .other
+      return unhandled
     }
   }
 }
