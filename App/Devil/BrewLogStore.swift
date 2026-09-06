@@ -38,6 +38,27 @@ struct BrewLogStore {
     folder.appending(path: "\(stem).json")
   }
 
+  /// The file exactly as it sits on disk.
+  func text(for record: BrewRecord) -> String? {
+    try? String(contentsOf: markdown(for: record.stamp.stem), encoding: .utf8)
+  }
+
+  /// Writes notes into the existing file rather than rendering a new one, so
+  /// anything you added in Obsidian is still there afterwards.
+  func save(_ notes: String, for record: BrewRecord) {
+    guard let text = text(for: record) else { return }
+    let edited = BrewRecord.apply(notes, to: text)
+    try? edited.write(to: markdown(for: record.stamp.stem), atomically: true, encoding: .utf8)
+  }
+
+  /// The pour, or `nil` for a brew made without a scale.
+  func pour(for record: BrewRecord) -> PourTrace? {
+    guard record.trace != nil,
+          let text = try? String(contentsOf: trace(for: record.stamp.stem), encoding: .utf8)
+    else { return nil }
+    return PourTrace.parse(json: text)?.trace
+  }
+
   /// What a share sheet hands over.
   ///
   /// The sidecar joins only when it is on disk. A brew made without a scale

@@ -20,7 +20,11 @@ public struct BrewRecord: Equatable, Sendable {
   public var finished: Bool
   /// The name of the sidecar holding the pour, or `nil` with no scale.
   public var trace: String?
-  public var notes: BrewNotes
+  /// Whatever you type afterwards, as prose.
+  ///
+  /// One field and not a form. A form presumes the vocabulary is settled, and
+  /// what is worth tracking about a brew is still an open question.
+  public var notes: String
 
   public init(
     stamp: BrewStamp,
@@ -37,7 +41,7 @@ public struct BrewRecord: Equatable, Sendable {
     beakerB: Double,
     finished: Bool,
     trace: String? = nil,
-    notes: BrewNotes = BrewNotes()
+    notes: String = ""
   ) {
     self.stamp = stamp
     self.recipe = recipe

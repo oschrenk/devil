@@ -7,7 +7,7 @@ struct BrewRecordTests {
     BrewStamp(year: 2026, month: 9, day: 6, hour: 7, minute: 14, utcOffsetMinutes: 120)
   }
 
-  private func record(notes: BrewNotes = BrewNotes()) -> BrewRecord {
+  private func record(notes: String = "") -> BrewRecord {
     var record = BrewRecord.of(
       settings: BrewSettings(servings: 1),
       at: stamp,
@@ -33,40 +33,6 @@ struct BrewRecordTests {
     let original = record()
 
     #expect(BrewRecord.parse(markdown: original.markdown) == original)
-  }
-
-  /// A brew written this morning has nothing typed into it yet.
-  @Test("A record with nothing typed survives the trip")
-  func roundTripBlank() {
-    let original = record(notes: BrewNotes(beans: "", waterRecipe: ""))
-
-    #expect(BrewRecord.parse(markdown: original.markdown) == original)
-  }
-
-  /// Tasting notes are prose, so a colon inside one must not split the line.
-  @Test("A record with every note filled survives the trip")
-  func roundTripFilled() {
-    let notes = BrewNotes(
-      beans: "#beans/ethiopia-guji",
-      waterRecipe: "#water/third-wave-half",
-      totalDissolvedSolids: "1.38",
-      concentration: "21.4",
-      aroma: "jasmine: loud at first",
-      flavour: "peach, black tea",
-      aftertaste: "long",
-      acidity: "malic",
-      sweetness: "high",
-      bitterness: "low",
-      texture: "syrupy",
-      afterfeel: "clean",
-      balance: "tilted sweet"
-    )
-    let original = record(notes: notes)
-
-    let parsed = BrewRecord.parse(markdown: original.markdown)
-
-    #expect(parsed == original)
-    #expect(parsed?.notes.aroma == "jasmine: loud at first")
   }
 
   @Test("A brew with no scale round-trips without a trace")
@@ -104,21 +70,6 @@ struct BrewRecordTests {
     #expect(lines.contains("- Grinder: 1Zpresso K-Ultra"))
   }
 
-  /// The split stays in frontmatter, where it is a measurement rather than a
-  /// claim about which water recipe you used.
-  @Test("The body leaves the water recipe for you to type")
-  func waterRecipeIsTyped() {
-    let lines = record().markdown.split(separator: "\n").map(String.init)
-
-    #expect(!lines.contains { $0.hasPrefix("- Water Recipe") })
-    #expect(lines.contains("beakerA: 107"))
-    #expect(lines.contains("beakerB: 18"))
-
-    var typed = record()
-    typed.notes.waterRecipe = "#water/third-wave-half"
-    #expect(typed.markdown.contains("- Water Recipe: #water/third-wave-half"))
-  }
-
   /// A blank line is not a fact, and a form nobody can fill in yet is noise
   /// in every brew ever written.
   @Test("A field with no answer is left out")
@@ -142,27 +93,6 @@ struct BrewRecordTests {
 
     #expect(labels == [
       "Recipe", "Grinder", "Grind Size", "Temperature", "Yield", "Weight",
-    ])
-  }
-
-  /// Filled in, the file keeps the vault's own order, so it still pastes.
-  @Test("A brew with every field typed lists all nineteen in order")
-  func fullBodyOrder() {
-    let notes = BrewNotes(
-      beans: "a", waterRecipe: "b", totalDissolvedSolids: "c", concentration: "d",
-      aroma: "e", flavour: "f", aftertaste: "g", acidity: "h", sweetness: "i",
-      bitterness: "j", texture: "k", afterfeel: "l", balance: "m"
-    )
-    let labels = record(notes: notes).markdown
-      .split(separator: "\n")
-      .filter { $0.hasPrefix("- ") }
-      .compactMap { $0.dropFirst(2).split(separator: ":").first.map(String.init) }
-
-    #expect(labels == [
-      "Beans", "Recipe", "Water Recipe", "Grinder", "Grind Size",
-      "Total Dissolved Solids", "Temperature", "Yield", "Concentration",
-      "Aroma", "Flavour", "Aftertaste", "Acidity", "Sweetness", "Bitterness",
-      "Weight", "Texture", "Afterfeel", "Balance",
     ])
   }
 

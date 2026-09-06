@@ -14,15 +14,19 @@ struct BrewLogView: View {
   var body: some View {
     List {
       ForEach(brews, id: \.stamp.stem) { brew in
-        BrewRow(brew: brew)
-          // A swipe rather than a button in the row, because the row itself
-          // becomes the way into a brew once there is a screen to open.
-          .swipeActions(edge: .leading) {
-            ShareLink(items: store.files(for: brew)) {
-              Label("Share", systemImage: "square.and.arrow.up")
-            }
-            .tint(.accentColor)
+        NavigationLink {
+          BrewDetailView(store: store, brew: brew)
+        } label: {
+          BrewRow(brew: brew)
+        }
+        // A swipe rather than a button in the row, because the row itself
+        // is now the way into a brew.
+        .swipeActions(edge: .leading) {
+          ShareLink(items: store.files(for: brew)) {
+            Label("Share", systemImage: "square.and.arrow.up")
           }
+          .tint(.accentColor)
+        }
       }
       .onDelete { offsets in
         for index in offsets {

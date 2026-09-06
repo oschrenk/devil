@@ -229,7 +229,7 @@ private struct ScaleRow: View {
 }
 
 /// A label on the left, a figure on the right, the way a spec sheet reads.
-private struct LabelledValue: View {
+struct LabelledValue: View {
   let label: String
   let value: String
 

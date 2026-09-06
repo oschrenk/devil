@@ -32,30 +32,17 @@ public extension BrewRecord {
     lines.append("")
 
     var body: [String?] = []
-    body.append(Self.field("Beans", notes.beans))
     body.append(Self.field("Recipe", Self.recipeTag))
-    // Typed, not filled in. The tap and demineralized split is temperature
-    // management rather than a water recipe, and `#water/` names a mineral
-    // profile this app knows nothing about. The split stays in frontmatter as
-    // `beakerA` and `beakerB`, where it is a measurement and not a claim.
-    body.append(Self.field("Water Recipe", notes.waterRecipe))
     body.append(Self.field("Grinder", grinder))
     body.append(Self.field("Grind Size", Format.grind(grind)))
-    body.append(Self.field("Total Dissolved Solids", notes.totalDissolvedSolids))
     body.append(Self.field("Temperature", Format.degrees(brewTemperature)))
     body.append(Self.field("Yield", Format.grams(water)))
-    body.append(Self.field("Concentration", notes.concentration))
-    body.append(Self.field("Aroma", notes.aroma))
-    body.append(Self.field("Flavour", notes.flavour))
-    body.append(Self.field("Aftertaste", notes.aftertaste))
-    body.append(Self.field("Acidity", notes.acidity))
-    body.append(Self.field("Sweetness", notes.sweetness))
-    body.append(Self.field("Bitterness", notes.bitterness))
     body.append(Self.field("Weight", Format.grams(dose)))
-    body.append(Self.field("Texture", notes.texture))
-    body.append(Self.field("Afterfeel", notes.afterfeel))
-    body.append(Self.field("Balance", notes.balance))
     lines.append(contentsOf: body.compactMap(\.self))
+    if !notes.isEmpty {
+      lines.append("")
+      lines.append(notes)
+    }
     return lines.joined(separator: "\n") + "\n"
   }
 
@@ -66,6 +53,24 @@ public extension BrewRecord {
   /// every brew ever written. A field appears when it has an answer.
   static func field(_ label: String, _ value: String) -> String? {
     value.isEmpty ? nil : "- \(label): \(value)"
+  }
+
+  /// Everything after the last bullet, which is where prose lives.
+  ///
+  /// The app writes the bullets, so the tail is yours. A heading you added in
+  /// Obsidian reads back as part of the note, shows in the editor, and goes
+  /// out again unchanged.
+  static func notes(in lines: [String], after frontmatterEnd: Int) -> String {
+    guard let last = lines.indices.last(where: { $0 > frontmatterEnd && lines[$0].hasPrefix("- ") })
+    else { return "" }
+    var tail = Array(lines[(last + 1)...])
+    while tail.first?.trimmed.isEmpty == true {
+      tail.removeFirst()
+    }
+    while tail.last?.trimmed.isEmpty == true {
+      tail.removeLast()
+    }
+    return tail.joined(separator: "\n")
   }
 
   /// The one recipe this app brews, so it needs no field of its own.
@@ -104,17 +109,7 @@ public extension BrewRecord {
           let beakerB = front["beakerB"].flatMap(Double.init)
     else { return nil }
 
-    var notes = BrewNotes(beans: "")
-    for line in lines[end...] where line.hasPrefix("- ") {
-      let body = String(line.dropFirst(2))
-      // The first colon only. A tasting note is prose and may hold more.
-      guard let split = body.firstIndex(of: ":") else { continue }
-      let label = String(body[body.startIndex ..< split]).trimmed
-      let value = String(body[body.index(after: split)...]).trimmed
-      if let field = BrewNotes.fields.first(where: { $0.label == label }) {
-        notes[keyPath: field.key] = value
-      }
-    }
+    let notes = Self.notes(in: lines, after: end)
 
     return BrewRecord(
       stamp: stamp,
