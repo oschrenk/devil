@@ -11,7 +11,7 @@ struct RecipeTests {
   func settings() {
     #expect(recipe.brewer == "Hario Switch")
     #expect(recipe.grinder == "1Zpresso K-Ultra")
-    #expect(recipe.filter == .harioV60Size02)
+    #expect(recipe.filter == .harioV60Natural)
     #expect(recipe.roast == "Medium")
     #expect(recipe.dose == 15)
     #expect(recipe.brewTemperature == 92)
@@ -19,14 +19,14 @@ struct RecipeTests {
     #expect(recipe.temperatureTarget == 75)
   }
 
-  /// The filter supplies the starting point. Abaca flows faster than Hario's
-  /// and takes a finer setting to hold the contact time.
-  @Test("An unset grind starts at the filter's default")
-  func grindDefaultsToTheFilter() {
-    #expect(recipe.grindSetting == 7.9)
+  /// A paper carries no grind of its own for now, so both start at the size
+  /// this recipe was dialled in at.
+  @Test("An unset grind starts at the size in the settings")
+  func grindDefaultsToTheSize() {
+    #expect(recipe.grindSetting == GrindSetting(number: 7, click: 9))
 
-    let abaca = Recipe.switchWaterAndTempManaged(for: BrewSettings(filter: .abaca))
-    #expect(abaca.grindSetting == 7.5)
+    let abaca = Recipe.switchWaterAndTempManaged(for: BrewSettings(filter: .cafecAbaca))
+    #expect(abaca.grindSetting == recipe.grindSetting)
 
     // Swapping paper changes nothing about the water.
     #expect(abaca.delivered == recipe.delivered)
@@ -37,11 +37,11 @@ struct RecipeTests {
   @Test("A grind set by hand overrides the filter and changes nothing else")
   func grindIsAdjustable() {
     let dialled = Recipe.switchWaterAndTempManaged(
-      for: BrewSettings(filter: .abaca, grindSetting: 8.2)
+      for: BrewSettings(filter: .cafecAbaca, grindMicrons: 700)
     )
 
-    #expect(dialled.grindSetting == 8.2)
-    #expect(dialled.filter == .abaca)
+    #expect(dialled.grindSetting == GrindSetting(number: 8, click: 9))
+    #expect(dialled.filter == .cafecAbaca)
     #expect(dialled.delivered == recipe.delivered)
     #expect(dialled.kettleFill == recipe.kettleFill)
     #expect(dialled.cooler == recipe.cooler)

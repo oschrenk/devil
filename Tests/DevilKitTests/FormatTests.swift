@@ -17,4 +17,12 @@ struct FormatTests {
     #expect(Format.flow(-3.2) == "-3.2 g/s")
     #expect(Format.flow(-0.4) == "-0.4 g/s")
   }
+
+  /// A tenth of a micron is precision the estimate behind it does not have.
+  @Test("A grind size reads as whole microns")
+  func microns() {
+    #expect(Format.microns(613) == "613 \u{00B5}m")
+    #expect(Format.microns(612.7) == "613 \u{00B5}m")
+    #expect(Format.microns(0) == "0 \u{00B5}m")
+  }
 }

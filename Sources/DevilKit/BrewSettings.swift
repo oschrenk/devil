@@ -17,10 +17,12 @@ public struct BrewSettings: Equatable, Sendable {
   public var grinder: Grinder
   /// The grinder setting in force.
   ///
-  /// Recorded rather than used: nothing in the recipe is computed from it. It
-  /// is here so a brew can be written down and dialled in, which is why it is
-  /// free to move rather than pinned to the filter.
-  public var grindSetting: Double
+  /// The grind, in microns.
+  ///
+  /// Recorded rather than used: nothing in the recipe is computed from it.
+  /// Held as a size rather than a dial number, because a dial number belongs
+  /// to one grinder and a size is the same coffee on any of them.
+  public var grindMicrons: Double
   /// How much water warms the cup, the vessel and the cone.
   public var preheat: PreheatPlan
 
@@ -28,9 +30,9 @@ public struct BrewSettings: Equatable, Sendable {
     servings: Int = 1,
     brewTemperature: Double = 92,
     temperatureTarget: Double = 75,
-    filter: Filter = .harioV60Size02,
+    filter: Filter = .harioV60Natural,
     grinder: Grinder = .oneZpressoKUltra,
-    grindSetting: Double? = nil,
+    grindMicrons: Double = BrewSettings.defaultMicrons,
     preheat: PreheatPlan = .standard
   ) {
     self.servings = servings
@@ -38,22 +40,25 @@ public struct BrewSettings: Equatable, Sendable {
     self.temperatureTarget = temperatureTarget
     self.filter = filter
     self.grinder = grinder
-    self.grindSetting = grinder.clamped(grindSetting ?? filter.defaultGrind)
+    self.grindMicrons = grindMicrons
     self.preheat = preheat
   }
 
-  /// What the dial in front of you accepts, in clicks of 0.1.
-  public var grindRange: ClosedRange<Double> {
-    grinder.grindRange
+  /// Where `7.9` on the K-Ultra lands, which is where this recipe was dialled
+  /// in before the app knew what a micron was.
+  public static let defaultMicrons = 613.0
+
+  /// Which detent on the chosen grinder comes closest to the size.
+  public var grindSetting: GrindSetting {
+    grinder.setting(forMicron: grindMicrons)
   }
 
-  /// Changes the burrs and brings the setting with them.
+  /// Whether the chosen grinder can be set to the size at all.
   ///
-  /// A number carried across unchanged would sit outside the new dial, and a
-  /// stepper bounded by that dial could never get back to it.
-  public mutating func use(_ grinder: Grinder) {
-    self.grinder = grinder
-    grindSetting = grinder.clamped(grindSetting)
+  /// The K-Ultra stops at 760 microns and the Ode starts at 550, so a size
+  /// picked for one can be off the end of the other.
+  public var grinderCanReach: Bool {
+    grinder.canReach(grindMicrons)
   }
 
   public static let one = BrewSettings()

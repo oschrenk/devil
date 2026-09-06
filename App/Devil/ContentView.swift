@@ -2,6 +2,7 @@ import DevilKit
 import SwiftUI
 
 struct ContentView: View {
+  @State private var gear = Gear()
   @State private var settings = BrewSettings.one
   /// Non-nil while a brew is running.
   @State private var running: RunningBrew?
@@ -9,6 +10,11 @@ struct ContentView: View {
   @State private var notesFor: BrewRecord?
   @State private var scale = ScaleConnection()
   @State private var picking = false
+
+  private var dialAndSize: String {
+    let size = Format.microns(settings.grindMicrons)
+    return "\(settings.grindSetting.formatted)  \u{00B7}  \(size)"
+  }
 
   private var recipe: Recipe {
     .switchWaterAndTempManaged(for: settings)
@@ -39,32 +45,34 @@ struct ContentView: View {
             )
           }
           Picker("Filter", selection: $settings.filter) {
-            Text("Hario").tag(Filter.harioV60Size02)
-            Text("Abaca").tag(Filter.abaca)
+            ForEach(Filter.all) { paper in
+              Text(paper.name).tag(paper)
+            }
           }
           Picker("Grinder", selection: $settings.grinder) {
-            ForEach(Grinder.all, id: \.self) { grinder in
+            ForEach(Grinder.all) { grinder in
               Text(grinder.name).tag(grinder)
             }
           }
-          Stepper(
-            value: $settings.grindSetting,
-            in: settings.grindRange,
-            step: 0.1
-          ) {
-            LabelledValue(label: "Grind", value: Format.grind(recipe.grindSetting))
+          // Plus and minus move one detent on the grinder in front of you,
+          // not a round number of microns. A click near the middle of a dial
+          // moves the grind several times further than one near an end.
+          Stepper {
+            LabelledValue(
+              label: "Grind",
+              value: settings.grinderCanReach ? dialAndSize : "out of range"
+            )
+          } onIncrement: {
+            settings.grindMicrons = settings.grinder.stepped(settings.grindMicrons, by: 1)
+          } onDecrement: {
+            settings.grindMicrons = settings.grinder.stepped(settings.grindMicrons, by: -1)
           }
         }
-        // Picking the paper moves the grind to what that paper usually wants.
-        // Dialling in from there is the point of the stepper, so the snap only
-        // happens on the change and never undoes a later edit.
-        .onChange(of: settings.filter) { _, filter in
-          settings.grindSetting = settings.grinder.clamped(filter.defaultGrind)
-        }
-        // The stepper's bounds are the new dial's the moment this changes, so
-        // a setting the new grinder cannot reach has to come with it.
+        // The size is the setting, so changing burrs keeps the coffee and
+        // moves the dial. Whether the new grinder can reach it is another
+        // matter, and the row says so when it cannot.
         .onChange(of: settings.grinder) { _, grinder in
-          settings.use(grinder)
+          gear.grinder = grinder
         }
 
         Section("Temperature") {
@@ -141,6 +149,15 @@ struct ContentView: View {
         }
       }
       .navigationTitle(recipe.brewer)
+      .toolbar {
+        ToolbarItem(placement: .topBarTrailing) {
+          NavigationLink {
+            GearView(gear: gear)
+          } label: {
+            Label("Gear", systemImage: "gearshape")
+          }
+        }
+      }
       // Top left, and not a row in the form. The `Scale` section earns a row
       // because you read its state before brewing. The log holds no state
       // that belongs on this screen, and a toolbar button costs no scrolling
@@ -167,6 +184,17 @@ struct ContentView: View {
     // Connect when the app opens, not when a brew starts. The scale sleeps
     // after five minutes when idle and disconnected, and grinding and
     // preheating take longer than that. A connected app keeps it awake.
+    // The gear screen sets what a brew starts from, so a change there shows
+    // on the next brew rather than the next launch.
+    .onChange(of: gear.microns, initial: true) { _, microns in
+      settings.grindMicrons = microns
+    }
+    .onChange(of: gear.filter, initial: true) { _, filter in
+      settings.filter = filter
+    }
+    .onChange(of: gear.grinder, initial: true) { _, grinder in
+      settings.grinder = grinder
+    }
     .task { scale.begin() }
     // A sheet rather than a push, because the timer it follows is a cover and
     // there is no stack underneath to push onto.

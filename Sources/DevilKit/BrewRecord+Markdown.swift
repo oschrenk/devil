@@ -15,7 +15,8 @@ public extension BrewRecord {
     lines.append("servings: \(servings)")
     lines.append("dose: \(Format.number(dose))")
     lines.append("water: \(Format.number(water))")
-    lines.append("grind: \(Format.grind(grind))")
+    lines.append("grind: \(grind)")
+    lines.append("grindMicrons: \(Int(grindMicrons.rounded()))")
     lines.append("grinder: \(grinder)")
     lines.append("filter: \(filter)")
     lines.append("brewTemperature: \(Format.number(brewTemperature))")
@@ -34,7 +35,7 @@ public extension BrewRecord {
     var body: [String?] = []
     body.append(Self.field("Recipe", Self.recipeTag))
     body.append(Self.field("Grinder", grinder))
-    body.append(Self.field("Grind Size", Format.grind(grind)))
+    body.append(Self.field("Grind Size", "\(grind) (\(Format.microns(grindMicrons)))"))
     body.append(Self.field("Temperature", Format.degrees(brewTemperature)))
     body.append(Self.field("Yield", Format.grams(water)))
     body.append(Self.field("Weight", Format.grams(dose)))
@@ -101,7 +102,7 @@ public extension BrewRecord {
           let servings = front["servings"].flatMap(Int.init),
           let dose = front["dose"].flatMap(Double.init),
           let water = front["water"].flatMap(Double.init),
-          let grind = front["grind"].flatMap(Double.init),
+          let grind = front["grind"],
           let filter = front["filter"],
           let brewTemperature = front["brewTemperature"].flatMap(Double.init),
           let temperatureTarget = front["temperatureTarget"].flatMap(Double.init),
@@ -118,6 +119,7 @@ public extension BrewRecord {
       dose: dose,
       water: water,
       grind: grind,
+      grindMicrons: front["grindMicrons"].flatMap(Double.init) ?? 0,
       grinder: front["grinder"] ?? "",
       filter: filter,
       brewTemperature: brewTemperature,

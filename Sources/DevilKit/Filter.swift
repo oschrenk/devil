@@ -1,21 +1,24 @@
-/// The paper the brew runs through, and the grind it usually wants.
+/// The paper the brew runs through.
 ///
-/// The setting here is a starting point, not a rule. Abaca paper flows faster
-/// than Hario's and takes a finer grind to hold the same contact time, but the
-/// number that actually works moves with the beans, so `BrewSettings` carries
-/// the one in force and this carries the one to start from.
-public struct Filter: Equatable, Hashable, Sendable {
+/// A name and nothing else for now. Each paper used to carry the grind it
+/// wants, as a dial number on one particular grinder, which is a size wearing
+/// the wrong clothes. `DEVIL-37` gives a paper a size of its own.
+public struct Filter: Equatable, Hashable, Sendable, Identifiable {
   public var name: String
-  /// On the 1Zpresso K-Ultra. Lower is finer.
-  public var defaultGrind: Double
 
-  public init(name: String, defaultGrind: Double) {
+  public var id: String {
+    name
+  }
+
+  public init(name: String) {
     self.name = name
-    self.defaultGrind = defaultGrind
   }
 }
 
 public extension Filter {
-  static let harioV60Size02 = Filter(name: "Hario V60 02", defaultGrind: 7.9)
-  static let abaca = Filter(name: "Abaca", defaultGrind: 7.5)
+  static let harioV60Natural = Filter(name: "Hario V60, Natural")
+  static let cafecAbaca = Filter(name: "Cafec, Abaca")
+  static let sibaristFast = Filter(name: "Sibarist, Fast")
+
+  static let all: [Filter] = [.harioV60Natural, .cafecAbaca, .sibaristFast]
 }

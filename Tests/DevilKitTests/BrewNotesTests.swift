@@ -52,7 +52,7 @@ struct BrewNotesTests {
 
     #expect(Array(after.dropLast()) == Array(before))
     #expect(after.last == "Tasted thin.")
-    #expect(BrewRecord.parse(markdown: edited)?.grind == 7.9)
+    #expect(BrewRecord.parse(markdown: edited)?.grind == "7.9")
   }
 
   @Test("Writing a second note replaces the first")

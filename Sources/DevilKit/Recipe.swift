@@ -44,7 +44,7 @@ public struct Recipe: Equatable, Sendable {
   public var grinder: String
   public var filter: Filter
   /// Recorded, not used. Nothing here is computed from the grind.
-  public var grindSetting: Double
+  public var grindSetting: GrindSetting
   public var roast: String
   public var dose: Double
   public var kettleFill: KettleFill
@@ -74,7 +74,7 @@ public struct Recipe: Equatable, Sendable {
     brewer: String,
     grinder: String,
     filter: Filter,
-    grindSetting: Double,
+    grindSetting: GrindSetting,
     roast: String,
     dose: Double,
     kettleFill: KettleFill,

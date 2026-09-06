@@ -14,7 +14,10 @@ public struct BrewRecord: Equatable, Sendable, Identifiable {
   public var servings: Int
   public var dose: Double
   public var water: Double
-  public var grind: Double
+  /// The dial as it read, such as `7.9`. Meaningless without `grinder`.
+  public var grind: String
+  /// The same grind as a size, which means the same on any grinder.
+  public var grindMicrons: Double
   public var grinder: String
   public var filter: String
   public var brewTemperature: Double
@@ -37,7 +40,8 @@ public struct BrewRecord: Equatable, Sendable, Identifiable {
     servings: Int,
     dose: Double,
     water: Double,
-    grind: Double,
+    grind: String,
+    grindMicrons: Double,
     grinder: String = "1Zpresso K-Ultra",
     filter: String,
     brewTemperature: Double,
@@ -54,6 +58,7 @@ public struct BrewRecord: Equatable, Sendable, Identifiable {
     self.dose = dose
     self.water = water
     self.grind = grind
+    self.grindMicrons = grindMicrons
     self.grinder = grinder
     self.filter = filter
     self.brewTemperature = brewTemperature
@@ -78,7 +83,8 @@ public struct BrewRecord: Equatable, Sendable, Identifiable {
       servings: settings.servings,
       dose: Scaling.dose(servings: settings.servings),
       water: water,
-      grind: settings.grindSetting,
+      grind: settings.grindSetting.formatted,
+      grindMicrons: settings.grindMicrons.rounded(),
       grinder: settings.grinder.name,
       filter: settings.filter.name,
       brewTemperature: settings.brewTemperature,

@@ -80,6 +80,6 @@ private struct BrewRow: View {
 
   private var summary: String {
     let people = brew.servings == 1 ? "1 cup" : "\(brew.servings) cups"
-    return "\(people) · \(Format.grams(brew.dose)) · grind \(Format.grind(brew.grind))"
+    return "\(people) · \(Format.grams(brew.dose)) · grind \(brew.grind)"
   }
 }

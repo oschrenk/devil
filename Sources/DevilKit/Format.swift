@@ -36,6 +36,12 @@ public enum Format {
     return "1 : \(number(value))"
   }
 
+  /// `613 \u{00B5}m`. Whole microns, because a tenth of a micron is a
+  /// precision the estimate behind it does not have.
+  public static func microns(_ value: Double) -> String {
+    "\(Int(value.rounded())) \u{00B5}m"
+  }
+
   /// A pour rate, always to one decimal.
   ///
   /// The figure is read while pouring, so a width that changes as the rate
