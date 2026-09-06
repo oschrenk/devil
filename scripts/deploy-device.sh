@@ -57,10 +57,14 @@ DEVICE_UDID="${1:-}"
 if [ -z "$DEVICE_UDID" ]; then
   command -v jq >/dev/null || fail "jq is not on PATH. Run this inside 'nix develop'."
 
-  # Filter on reality == physical. `devicectl list devices` lists every booted
-  # simulator alongside real hardware, and a simulator UDID looks exactly like a
-  # device UDID, so an unfiltered list installs to the wrong place or reports a
-  # phone that is not plugged in.
+  # Exclude simulators rather than select physical ones. `devicectl` lists every
+  # booted simulator alongside real hardware with identical-looking UDIDs, but
+  # it sets `reality` only on simulators: the field is absent for a real phone,
+  # so matching on "physical" finds nothing and skips the device you plugged in.
+  #
+  # tunnelState is not checked either. A wired, paired phone sits at
+  # "disconnected" until something asks it for a tunnel, and `devicectl install`
+  # is what asks. Its own error is clearer than a guess made here.
   #
   # Not mapfile: macOS ships bash 3.2, where it does not exist, and this script
   # has to run outside the nix shell as well as inside it.
@@ -69,8 +73,7 @@ if [ -z "$DEVICE_UDID" ]; then
     [ -n "$line" ] && UDIDS+=("$line")
   done < <(xcrun devicectl list devices --json-output - 2>/dev/null \
     | jq -r '.result.devices[]
-             | select(.hardwareProperties.reality == "physical")
-             | select(.connectionProperties.tunnelState == "connected")
+             | select(.hardwareProperties.reality != "simulated")
              | .hardwareProperties.udid' || true)
   case "${#UDIDS[@]}" in
     0) fail "No connected iPhone found. Plug it in, unlock it, and trust this computer." ;;
@@ -106,6 +109,26 @@ xcodebuild \
   archive
 
 [ -d "$APP_PATH" ] || fail "No app in the archive at $APP_PATH."
+
+# A profile that does not list this device still archives happily. The failure
+# then arrives from the install as "This provisioning profile cannot be
+# installed on this device", which points at the profile rather than at the
+# device that is missing from it.
+#
+# -allowProvisioningUpdates refreshes profiles but never registers a new
+# device, and a `generic/platform=iOS` archive names no device for it to
+# notice, so this has to be checked rather than assumed.
+step "Checking the profile covers this device"
+PROFILE_PLIST="$BUILD_DIR/embedded.plist"
+security cms -D -i "$APP_PATH/embedded.mobileprovision" > "$PROFILE_PLIST" 2>/dev/null \
+  || fail "The archive has no embedded provisioning profile."
+if ! plutil -extract ProvisionedDevices xml1 -o - "$PROFILE_PLIST" 2>/dev/null \
+  | grep -q "$DEVICE_UDID"; then
+  fail "The provisioning profile does not list $DEVICE_UDID.
+       Register the device at https://developer.apple.com/account/resources/devices/add
+       then delete the cached profiles and run this again:
+         rm -f ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/*.mobileprovision"
+fi
 
 step "Installing on $DEVICE_UDID"
 xcrun devicectl device install app --device "$DEVICE_UDID" "$APP_PATH"

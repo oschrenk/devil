@@ -125,11 +125,7 @@ Notarization applies to Mac distribution only.
 The script checks the config file, the team ID, the identity and the connected device before it starts.
 An archive takes minutes, and you can know every one of those failures up front.
 
-**Partly verified.**
-The archive signs and Apple issues the profile.
-`codesign` reports a full chain, `Apple Development` to `Apple Worldwide Developer Relations` to `Apple Root CA`.
-The entitlements show the team prefix.
-Nobody has run the `devicectl` install, because no phone has reached the machine yet.
+Verified end to end on 2026-09-06.
 `DEVIL-01` covers that last step.
 
 ## No `nix build`
@@ -213,6 +209,40 @@ xcodebuild -project Devil.xcodeproj -scheme Devil   -destination 'generic/platfo
 
 That exits 64 on the Xcode that cannot, and 0 on the one that can.
 `scripts/deploy-device.sh` runs it before the archive for that reason.
+
+### `This Provisioning Profile Cannot Be Installed on This Device`
+
+The profile does not list the phone, and the archive did not mind.
+`-allowProvisioningUpdates` refreshes profiles but never registers a new device, and a `generic/platform=iOS` archive names no device for it to notice.
+
+See which devices the built app actually covers:
+
+```sh
+security cms -D -i build/device/Devil.xcarchive/Products/Applications/Devil.app/embedded.mobileprovision \
+  | plutil -extract ProvisionedDevices xml1 -o -
+```
+
+Register the phone at [developer.apple.com](https://developer.apple.com/account/resources/devices/add), then clear the cached profiles so Xcode fetches a new one:
+
+```sh
+rm -f ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/*.mobileprovision
+```
+
+`scripts/deploy-device.sh` checks this after the archive and prints both commands.
+
+### `Developer Mode Is Not Enabled`
+
+An install fails with `com.apple.security.cryptex error 20`, and the Developer Mode entry is missing from the phone.
+It only appears once Xcode has asked the device for it.
+Open Xcode, then `Window > Devices and Simulators`, and select the phone.
+Restart the phone, then `Settings > Privacy & Security > Developer Mode`, and enter the passcode.
+
+Check the status the phone reports to the Mac:
+
+```sh
+xcrun devicectl list devices --json-output - \
+  | grep -o '"developerModeStatus" : "[a-z]*"'
+```
 
 ### `swiftc` Rejects the SDK
 
