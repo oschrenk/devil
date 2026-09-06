@@ -1,0 +1,13 @@
+// Copy to Local.xcconfig, which is git-ignored, and fill in.
+//
+//   cp Local.xcconfig.example Local.xcconfig
+//
+// Both values are account-specific, which is why they are not committed.
+
+// Reverse-DNS prefix. The bundle identifier is BUNDLE_PREFIX.devil.
+BUNDLE_PREFIX = com.oschrenk
+
+// Apple Developer Team ID, from developer.apple.com under Membership details.
+// Leave empty for simulator builds: they are ad-hoc signed and need no team.
+// A device build needs it, and fails with a clear error without it.
+DEVELOPMENT_TEAM =

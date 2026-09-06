@@ -1,0 +1,99 @@
+version: '3'
+vars:
+  APP_NAME: "Devil"
+  PROJECT: "Devil.xcodeproj"
+  SCHEME: "Devil"
+  # The simulator `task run` installs to. Override on the command line:
+  #   task run SIMULATOR="iPhone Air"
+  # `xcrun simctl list devices available` names the rest.
+  SIMULATOR: "iPhone 17"
+  SWIFT_VERSION: "6.0"
+  DERIVED_DIR: "build/sim"
+  APP_PATH: "build/sim/Build/Products/Debug-iphonesimulator/Devil.app"
+tasks:
+  generate:
+    cmds:
+      - xcodegen generate
+    sources:
+      - project.yml
+    generates:
+      - "{{.PROJECT}}/project.pbxproj"
+    silent: true
+  # `swift test` covers DevilKit only, which is where the recipe logic lives.
+  # It runs on the host in seconds and needs neither a simulator nor xcodebuild.
+  # The app target is two SwiftUI files with nothing to assert on.
+  test:
+    cmds:
+      - swift test
+    silent: true
+  # CODE_SIGNING_ALLOWED=NO gives an ad-hoc build. That is all a simulator ever
+  # needs, and it is why this whole loop works with no certificate.
+  build:
+    deps: [generate]
+    requires:
+      vars: [PROJECT, SCHEME, DERIVED_DIR]
+    cmds:
+      - |
+        set -o pipefail
+        xcodebuild \
+          -project "{{.PROJECT}}" \
+          -scheme "{{.SCHEME}}" \
+          -destination 'generic/platform=iOS Simulator' \
+          -derivedDataPath "{{.DERIVED_DIR}}" \
+          CODE_SIGNING_ALLOWED=NO \
+          build | xcbeautify
+    silent: true
+  run:
+    deps: [generate]
+    requires:
+      vars: [PROJECT, SCHEME, SIMULATOR, DERIVED_DIR, APP_PATH]
+    cmds:
+      - |
+        set -euo pipefail
+        set -o pipefail
+        xcodebuild \
+          -project "{{.PROJECT}}" \
+          -scheme "{{.SCHEME}}" \
+          -destination 'platform=iOS Simulator,name={{.SIMULATOR}}' \
+          -derivedDataPath "{{.DERIVED_DIR}}" \
+          CODE_SIGNING_ALLOWED=NO \
+          build | xcbeautify
+        # `simctl boot` exits non-zero on an already-booted device, which is a
+        # normal state here rather than a failure.
+        xcrun simctl boot "{{.SIMULATOR}}" 2>/dev/null || true
+        # Simulator.app, not Xcode. It is a separate application inside the
+        # same bundle and opening it does not start the IDE.
+        open -a Simulator
+        # -b waits for boot to finish. Its progress log is 20 lines of data
+        # migration noise, and a failed boot shows up as a failed install below.
+        xcrun simctl bootstatus "{{.SIMULATOR}}" -b >/dev/null
+        xcrun simctl install "{{.SIMULATOR}}" "{{.APP_PATH}}"
+        # Read the identifier back out of the built bundle rather than repeating
+        # it here: it is assembled from BUNDLE_PREFIX in the git-ignored
+        # Local.xcconfig, so this file cannot know it.
+        BUNDLE_ID="$(plutil -extract CFBundleIdentifier raw "{{.APP_PATH}}/Info.plist")"
+        xcrun simctl launch "{{.SIMULATOR}}" "$BUNDLE_ID"
+    silent: true
+  format:
+    cmds:
+      # --swiftversion matches swift-tools-version in Package.swift and
+      # SWIFT_VERSION in project.yml. Without it swiftformat disables the rules
+      # that depend on language version and says so on every run.
+      - swiftformat --swiftversion {{.SWIFT_VERSION}} Package.swift Sources Tests App
+    silent: true
+  lint:
+    cmds:
+      - swiftlint
+    silent: true
+  # Installs on a physical iPhone. Needs the one-time Xcode setup described in
+  # DEVELOPMENT.md; the script says so itself when the setup is missing.
+  device:
+    cmds:
+      - ./scripts/deploy-device.sh
+    silent: true
+  clean:
+    requires:
+      vars: [PROJECT, DERIVED_DIR]
+    cmds:
+      - rm -rf .build "{{.DERIVED_DIR}}" build "{{.PROJECT}}"
+    silent: true
