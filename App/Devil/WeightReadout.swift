@@ -17,10 +17,6 @@ struct WeightReadout: View {
   /// Grams a second, or `nil` before there are enough readings to say.
   let flow: Double?
 
-  /// Reserved on both sides of the weight, so the figure everyone actually
-  /// reads stays centred and does not slide sideways when the rate appears.
-  @ScaledMetric private var rateWidth: Double = 74
-
   private var reached: Bool {
     (grams ?? 0) >= target
   }
@@ -32,19 +28,22 @@ struct WeightReadout: View {
 
   var body: some View {
     VStack(spacing: 6) {
-      HStack(alignment: .firstTextBaseline, spacing: 8) {
-        Color.clear.frame(width: rateWidth, height: 0)
-        Text(grams.map { Format.grams($0) } ?? "—")
-          .font(.system(size: 44, weight: .semibold, design: .rounded))
-          .monospacedDigit()
-          .contentTransition(.numericText())
-          .foregroundStyle(reached ? Color.green : .primary)
-        Text(flow.map { Format.flow($0) } ?? "")
-          .font(.subheadline)
-          .monospacedDigit()
-          .foregroundStyle(.secondary)
-          .frame(width: rateWidth, alignment: .leading)
-      }
+      Text(grams.map { Format.grams($0) } ?? "\u{2014}")
+        .font(.system(size: 44, weight: .semibold, design: .rounded))
+        .monospacedDigit()
+        .contentTransition(.numericText())
+        .foregroundStyle(reached ? Color.green : .primary)
+        // The weight is one line at any text size. Beside the rate it ran out
+        // of width at the larger settings and broke the `g` onto its own line.
+        .lineLimit(1)
+        .fixedSize()
+      // A space rather than nothing when there is no rate yet, so the rows
+      // below do not jump upwards the moment one appears.
+      Text(flow.map { Format.flow($0) } ?? " ")
+        .font(.subheadline)
+        .monospacedDigit()
+        .foregroundStyle(.secondary)
+        .fixedSize()
       HStack(spacing: 8) {
         ProgressView(value: fraction)
           .tint(reached ? .green : .accentColor)

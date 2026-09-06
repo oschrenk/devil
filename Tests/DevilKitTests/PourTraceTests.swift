@@ -90,29 +90,7 @@ struct PourTraceTests {
     #expect(trace.samples.last?.grams == 250)
   }
 
-  @Test("Thinning keeps the ends and takes readings that happened")
-  func thinning() {
-    let samples = (0 ... 100).map { PourSample(seconds: Double($0), grams: Double($0) * 2) }
-
-    let thinned = PourTrace.thin(samples, to: 11)
-
-    #expect(thinned.count == 11)
-    #expect(thinned.first == samples.first)
-    #expect(thinned.last == samples.last)
-    #expect(thinned.allSatisfy { samples.contains($0) })
-  }
-
-  @Test("A trace already short enough is left alone")
-  func thinningShortTrace() {
-    let samples = (0 ... 5).map { PourSample(seconds: Double($0), grams: 1) }
-
-    #expect(PourTrace.thin(samples, to: 200) == samples)
-    #expect(PourTrace.thin(samples, to: 6) == samples)
-  }
-
-  /// Thinning the whole trace first would space the readings a second apart,
-  /// and every interval would then read as a gap.
-  @Test("Thinning for the chart does not invent gaps")
+  @Test("Bucketing for the chart does not invent gaps")
   func drawableKeepsOneSegment() {
     var trace = PourTrace()
     for tick in 0 ... 1950 {
@@ -122,10 +100,11 @@ struct PourTraceTests {
     let drawn = trace.drawableSegments(limit: 200)
 
     #expect(drawn.count == 1)
-    #expect(drawn[0].count == 200)
+    #expect(drawn[0].count <= 200)
+    #expect(drawn[0].count > 150)
   }
 
-  @Test("Thinning for the chart keeps a real gap")
+  @Test("Bucketing for the chart keeps a real gap")
   func drawableKeepsGaps() {
     var trace = PourTrace()
     for tick in 0 ... 600 {
@@ -188,7 +167,7 @@ struct PourTraceTests {
 
   /// Clamping runs after thinning, so it must not disturb either the gaps or
   /// the number of points that survived.
-  @Test("Clamping leaves the shape of a thinned trace alone")
+  @Test("Clamping leaves the shape of a bucketed trace alone")
   func clampingKeepsShape() {
     var trace = PourTrace()
     for tick in 0 ... 600 {
@@ -205,5 +184,64 @@ struct PourTraceTests {
     #expect(clamped.map(\.count) == plain.map(\.count))
     #expect(clamped.flatMap(\.self).map(\.seconds) == plain.flatMap(\.self).map(\.seconds))
     #expect(Set(clamped.flatMap(\.self).map(\.grams)) == [0, 250])
+  }
+
+  /// The spikes on the graph were single bad readings from the scale, drawn
+  /// as a vertical line to nowhere and back.
+  @Test("A lone bad reading is outvoted by its neighbours")
+  func spikesAreVotedOut() {
+    var trace = PourTrace()
+    for tick in 0 ... 300 {
+      trace.append(seconds: Double(tick) / 10, grams: tick == 150 ? 9999 : 100)
+    }
+
+    let drawn = trace.drawableSegments(limit: 200).flatMap(\.self)
+
+    #expect(!drawn.isEmpty)
+    #expect(drawn.allSatisfy { $0.grams == 100 })
+  }
+
+  /// Why the buckets are cut by time. A point once drawn has to stay where it
+  /// is as the brew goes on, or the whole line re-picks itself every second
+  /// and a bad reading blinks in and out as the spacing slides over it.
+  @Test("Points already drawn do not move as more readings arrive")
+  func stableUnderGrowth() {
+    var early = PourTrace()
+    for tick in 0 ... 1000 {
+      early.append(seconds: Double(tick) / 10, grams: Double(tick) / 10)
+    }
+    var later = early
+    for tick in 1001 ... 1500 {
+      later.append(seconds: Double(tick) / 10, grams: Double(tick) / 10)
+    }
+
+    let before = early.drawableSegments(limit: 200).flatMap(\.self)
+    let after = later.drawableSegments(limit: 200).flatMap(\.self)
+
+    // All but the last, which sits in a bucket that was still filling.
+    #expect(before.count > 90)
+    #expect(after.count > before.count)
+    #expect(before.dropLast() == Array(after.prefix(before.count - 1)))
+  }
+
+  /// A rate read from single endpoints is wrong by the whole of a bad reading
+  /// that lands on one.
+  @Test("A bad reading at the edge of the window does not wreck the rate")
+  func flowIgnoresSpike() throws {
+    var trace = PourTrace()
+    for tick in 0 ... 20 {
+      let seconds = Double(tick) / 10
+      trace.append(seconds: seconds, grams: tick == 20 ? 9999 : seconds * 5)
+    }
+
+    #expect(try abs(#require(trace.flow(at: 2, window: 2)) - 5) < 0.5)
+  }
+
+  @Test("A bucket is a whole number of seconds wide, and never narrower than one")
+  func bucketWidth() {
+    #expect(PourTrace.bucketWidth(span: 195, limit: 200) == 1)
+    #expect(PourTrace.bucketWidth(span: 20, limit: 200) == 1)
+    #expect(PourTrace.bucketWidth(span: 400, limit: 200) == 2)
+    #expect(PourTrace.bucketWidth(span: 0, limit: 200) == 1)
   }
 }

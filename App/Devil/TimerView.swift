@@ -257,9 +257,10 @@ private struct CurrentStep: View {
   let recipe: Recipe
   let progress: BrewProgress
 
-  /// Kept across brews rather than reset each time. Whether the instructions
-  /// are wanted is a property of how well the recipe is known, not of today.
-  @AppStorage("stepInstructionsShown") private var isExpanded = true
+  /// Closed to start with, and kept across brews rather than reset each time.
+  /// Whether the instructions are wanted is a property of how well the recipe
+  /// is known, not of today, and by now the recipe is known.
+  @AppStorage("stepInstructionsShown") private var isExpanded = false
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {

@@ -34,28 +34,32 @@ public struct PourTrace: Equatable, Sendable {
     samples.append(PourSample(seconds: seconds, grams: grams))
   }
 
+  /// The reading in the middle by weight, and a real reading rather than an
+  /// average of several. An averaged point sits where the scale never read.
+  ///
+  /// This is what removes the spikes. A single wrong reading is outvoted by
+  /// the ones either side of it, where a mean would be dragged upwards by it
+  /// and a first-or-last pick would sometimes land on it.
+  static func median(of samples: [PourSample]) -> PourSample? {
+    guard !samples.isEmpty else { return nil }
+    return samples.sorted { $0.grams < $1.grams }[(samples.count - 1) / 2]
+  }
+
   /// Grams a second, over the readings inside `window` ending at `seconds`.
   ///
   /// A difference between two readings ten milliseconds apart is mostly noise,
-  /// so the rate is taken across a window rather than between neighbours.
+  /// so the rate is taken across a window rather than between neighbours. Each
+  /// end of that window is a median of three, because a rate read from single
+  /// endpoints is wrong by the whole of any bad reading that lands on one.
   public func flow(at seconds: Double, window: Double = 0.5) -> Double? {
     let inWindow = samples.filter { $0.seconds > seconds - window && $0.seconds <= seconds }
-    guard let first = inWindow.first, let last = inWindow.last else { return nil }
+    guard inWindow.count > 1,
+          let first = Self.median(of: Array(inWindow.prefix(3))),
+          let last = Self.median(of: Array(inWindow.suffix(3)))
+    else { return nil }
     let span = last.seconds - first.seconds
     guard span > 0 else { return nil }
     return (last.grams - first.grams) / span
-  }
-
-  /// At most `limit` readings from `samples`, evenly spaced, always keeping
-  /// the first and the last.
-  ///
-  /// Nearest-neighbour rather than an average, so every point drawn is a
-  /// reading that actually happened. An averaged point sits where the scale
-  /// never read, which is the wrong thing to compare two brews against.
-  public static func thin(_ samples: [PourSample], to limit: Int) -> [PourSample] {
-    guard limit > 1, samples.count > limit else { return samples }
-    let step = Double(samples.count - 1) / Double(limit - 1)
-    return (0 ..< limit).map { samples[Int((Double($0) * step).rounded())] }
   }
 
   /// The trace split wherever it went quiet.
@@ -75,12 +79,25 @@ public struct PourTrace: Equatable, Sendable {
     return result
   }
 
+  /// How wide a bucket has to be to keep the drawing under `limit` points.
+  ///
+  /// A whole number of seconds, so the buckets a brew is cut into do not move
+  /// as it goes on. A width derived from the reading count would change with
+  /// every reading, and every drawn point would land somewhere new each time.
+  static func bucketWidth(span: Double, limit: Int) -> Double {
+    guard limit > 0, span > 0 else { return 1 }
+    return max(1, (span / Double(limit)).rounded(.up))
+  }
+
   /// The trace at a size a chart can draw, with the gaps kept.
   ///
-  /// Thinning is done inside each segment rather than across the whole trace.
-  /// Thinning first would space the readings a second apart, and every one of
-  /// those intervals would then read as a gap: a brew that never dropped out
-  /// would draw as a row of disconnected specks.
+  /// One point per bucket of time, each the median of the readings in it.
+  /// Cutting by time rather than by count is what stops the line flickering:
+  /// a bucket already full keeps the same readings and yields the same point
+  /// no matter how much arrives later, so only the newest point ever moves.
+  /// Picking every nth reading instead re-picks the whole line on each pass,
+  /// and a bad reading blinks in and out as the spacing slides over it.
+  ///
   /// A reading outside `range` is pulled to the nearer edge rather than
   /// dropped. Lifting the server reads well below zero, and a line that leaves
   /// the frame either draws over the rest of the screen or vanishes and looks
@@ -91,16 +108,29 @@ public struct PourTrace: Equatable, Sendable {
     maxGap: Double = 1,
     within range: ClosedRange<Double>? = nil
   ) -> [[PourSample]] {
-    let parts = segments(maxGap: maxGap)
-    let sized: [[PourSample]] = samples.count > limit && limit > 1
-      ? parts.map { part in
-        let share = Double(part.count) / Double(samples.count) * Double(limit)
-        return Self.thin(part, to: max(2, Int(share.rounded())))
+    let span = (samples.last?.seconds ?? 0) - (samples.first?.seconds ?? 0)
+    let width = Self.bucketWidth(span: span, limit: limit)
+
+    return segments(maxGap: maxGap).map { part in
+      var points: [PourSample] = []
+      var bucket: [PourSample] = []
+      var index = (part.first?.seconds ?? 0) / width
+
+      for sample in part {
+        let next = (sample.seconds / width).rounded(.down)
+        if next != index, let point = Self.median(of: bucket) {
+          points.append(point)
+          bucket = []
+        }
+        index = next
+        bucket.append(sample)
       }
-      : parts
-    guard let range else { return sized }
-    return sized.map { part in
-      part.map {
+      if let point = Self.median(of: bucket) {
+        points.append(point)
+      }
+
+      guard let range else { return points }
+      return points.map {
         let held = min(max($0.grams, range.lowerBound), range.upperBound)
         return PourSample(seconds: $0.seconds, grams: held)
       }
