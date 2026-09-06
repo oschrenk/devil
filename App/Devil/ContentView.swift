@@ -3,6 +3,8 @@ import SwiftUI
 
 struct ContentView: View {
   @State private var settings = BrewSettings.one
+  /// Non-nil while a brew is running.
+  @State private var running: RunningBrew?
 
   private var recipe: Recipe {
     .switchWaterAndTempManaged(for: settings)
@@ -50,14 +52,45 @@ struct ContentView: View {
 
         Section {
           LabelledValue(label: "Through the bed", value: recipe.waterThroughBed.grams)
-          LabelledValue(label: "Ratio", value: "1 : \(recipe.brewRatio.oneDecimal)")
+          LabelledValue(label: "Ratio", value: "1 : \(Format.number(recipe.brewRatio))")
           LabelledValue(label: "Finish", value: recipe.finish?.formatted ?? "not timed")
+        }
+
+        Section {
+          Button {
+            running = RunningBrew(start: .now)
+          } label: {
+            Label("Start brewing", systemImage: "play.fill")
+              .frame(maxWidth: .infinity)
+          }
+          .font(.headline)
         }
       }
       .navigationTitle(recipe.brewer)
       .navigationBarTitleDisplayMode(.inline)
       .monospacedDigit()
     }
+    // A cover, not a push. A running brew is an activity rather than a place:
+    // it should not sit on a navigation stack where a stray back-swipe ends it,
+    // and a push destination inside a Form can deactivate on its own, which it
+    // did, closing the timer part-way through a brew.
+    .fullScreenCover(item: $running) { brew in
+      NavigationStack {
+        TimerView(recipe: recipe, start: brew.start)
+      }
+    }
+  }
+}
+
+/// A brew in progress, identified by when it started.
+///
+/// The wrapper exists so the cover is presented once per brew. Keying it on a
+/// bare `Date?` would rebuild the timer whenever the parent redrew.
+struct RunningBrew: Identifiable, Equatable {
+  let start: Date
+
+  var id: Date {
+    start
   }
 }
 
@@ -100,18 +133,12 @@ private struct StepRow: View {
 }
 
 private extension Double {
-  /// Whole grams read as "50 g"; halves as "112.5 g". Trailing zeros are noise
-  /// on a scale that only ever shows one decimal.
   var grams: String {
-    "\(oneDecimal) g"
+    Format.grams(self)
   }
 
   var degrees: String {
-    "\(oneDecimal) °C"
-  }
-
-  var oneDecimal: String {
-    self == rounded() ? "\(Int(self))" : String(describing: (self * 10).rounded() / 10)
+    Format.degrees(self)
   }
 }
 
