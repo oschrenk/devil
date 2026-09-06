@@ -17,7 +17,9 @@ struct PourGraph: View {
   private static let drawnPoints = 200
 
   private var drawn: [[PourSample]] {
-    trace.drawableSegments(limit: Self.drawnPoints)
+    // Held inside the frame. Lifting the server reads well below zero, and a
+    // line that leaves the box draws over the rest of the screen.
+    trace.drawableSegments(limit: Self.drawnPoints, within: 0 ... recipe.waterThroughBed)
   }
 
   var body: some View {
@@ -42,11 +44,14 @@ struct PourGraph: View {
     .chartXScale(domain: 0 ... Double(recipe.totalTime.seconds))
     .chartYScale(domain: 0 ... recipe.waterThroughBed)
     .chartYAxis(.hidden)
-    // Every step is a rule, but only a few are labelled. Labelling all of them
-    // ran `0:00` into `0:10`, and two steps ten seconds apart cannot both be
-    // named on a phone. The rules already mark where the steps are.
+    // The recipe's own times, not an even stride. `0:45` and `1:45` are when
+    // something happens; `0:50` and `1:40` are arithmetic, and reading the
+    // graph against them means doing that arithmetic in your head.
+    //
+    // Every step is ruled, but only the ones far enough apart are named:
+    // labelling all seven ran `0:00` into `0:10`.
     .chartXAxis {
-      AxisMarks(values: .automatic(desiredCount: 4)) { value in
+      AxisMarks(values: recipe.labelledStepTimes(minimumGap: 25).map(Double.init)) { value in
         AxisValueLabel {
           if let seconds = value.as(Double.self) {
             Text(BrewTime(seconds: Int(seconds)).formatted)
@@ -57,7 +62,11 @@ struct PourGraph: View {
       }
     }
     .chartLegend(.hidden)
-    .frame(height: 110)
+    // Grows into whatever the step card leaves, up to a point. Collapsing the
+    // card should buy a taller graph, not hand the graph the whole screen: at
+    // full height it dominates a view whose subject is the clock.
+    .frame(minHeight: 110, maxHeight: 200)
+    .padding(.top, 14)
     .padding(.bottom)
   }
 }

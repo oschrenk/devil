@@ -29,6 +29,23 @@ public extension Recipe {
     return next.start.seconds - step.start.seconds
   }
 
+  /// The step times that can be labelled on an axis without colliding.
+  ///
+  /// Every step is worth a mark, but not every one is worth a name: the swirl
+  /// at 0:10 sits ten seconds after the first pour, and on a phone the two
+  /// labels overlap into an unreadable smear. Dropping the ones too close to
+  /// the last kept label keeps the times that are actually recipe landmarks.
+  func labelledStepTimes(minimumGap: Int) -> [Int] {
+    var kept: [Int] = []
+    for step in steps.sorted(by: { $0.start < $1.start }) {
+      if let last = kept.last, step.start.seconds - last < minimumGap {
+        continue
+      }
+      kept.append(step.start.seconds)
+    }
+    return kept
+  }
+
   /// How much water has gone through the bed by the end of a step.
   ///
   /// The figure a scale should read at that point, given the server was tared

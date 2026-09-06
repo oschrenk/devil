@@ -39,6 +39,12 @@ final class ScaleConnection: NSObject {
   private(set) var state: ScaleState = .noneChosen
   private(set) var found: [FoundScale] = []
   private(set) var weight: Double?
+  /// How many weight readings have arrived. The count is what the pour trace
+  /// watches, not the weight: a scale holding steady between pours reports the
+  /// same number ten times a second, and `onChange` on the value alone sees
+  /// none of them. Recording only the changes left the flat stretches empty,
+  /// and the graph drew every one of them as a dropout.
+  private(set) var weightSamples = 0
   private(set) var scaleSeconds: Double?
   /// The last press, and how many have arrived. The count is what a view
   /// observes: two stops in a row are the same value, and watching the value
@@ -292,6 +298,7 @@ extension ScaleConnection: CBPeripheralDelegate {
     switch message {
     case let .weight(grams):
       weight = grams
+      weightSamples += 1
     case let .timer(seconds):
       scaleSeconds = seconds
       lastTimerAt = .now
@@ -305,6 +312,7 @@ extension ScaleConnection: CBPeripheralDelegate {
       buttonCount += 1
       if let grams {
         weight = grams
+        weightSamples += 1
       }
       if let seconds {
         scaleSeconds = seconds

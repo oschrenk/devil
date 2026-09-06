@@ -151,4 +151,59 @@ struct PourTraceTests {
 
     #expect(trace.drawableSegments(limit: 200) == trace.segments())
   }
+
+  /// Lifting the server off the scale reads well below zero.
+  @Test("A reading below the frame is held at the floor, not dropped")
+  func clampsBelow() {
+    var trace = PourTrace()
+    trace.append(seconds: 1, grams: 50)
+    trace.append(seconds: 2, grams: -32.5)
+    trace.append(seconds: 3, grams: 0)
+
+    let drawn = trace.drawableSegments(limit: 200, within: 0 ... 250).flatMap(\.self)
+
+    #expect(drawn.map(\.grams) == [50, 0, 0])
+    #expect(drawn.map(\.seconds) == [1, 2, 3])
+  }
+
+  @Test("A reading above the frame is held at the ceiling")
+  func clampsAbove() {
+    var trace = PourTrace()
+    trace.append(seconds: 1, grams: 240)
+    trace.append(seconds: 2, grams: 310)
+
+    let drawn = trace.drawableSegments(limit: 200, within: 0 ... 250).flatMap(\.self)
+
+    #expect(drawn.map(\.grams) == [240, 250])
+  }
+
+  @Test("Without a range the readings are drawn as they came")
+  func noClamping() {
+    var trace = PourTrace()
+    trace.append(seconds: 1, grams: -5)
+    trace.append(seconds: 2, grams: 400)
+
+    #expect(trace.drawableSegments(limit: 200).flatMap(\.self).map(\.grams) == [-5, 400])
+  }
+
+  /// Clamping runs after thinning, so it must not disturb either the gaps or
+  /// the number of points that survived.
+  @Test("Clamping leaves the shape of a thinned trace alone")
+  func clampingKeepsShape() {
+    var trace = PourTrace()
+    for tick in 0 ... 600 {
+      trace.append(seconds: Double(tick) / 10, grams: -50)
+    }
+    for tick in 0 ... 600 {
+      trace.append(seconds: 120 + Double(tick) / 10, grams: 500)
+    }
+
+    let plain = trace.drawableSegments(limit: 100)
+    let clamped = trace.drawableSegments(limit: 100, within: 0 ... 250)
+
+    #expect(clamped.count == plain.count)
+    #expect(clamped.map(\.count) == plain.map(\.count))
+    #expect(clamped.flatMap(\.self).map(\.seconds) == plain.flatMap(\.self).map(\.seconds))
+    #expect(Set(clamped.flatMap(\.self).map(\.grams)) == [0, 250])
+  }
 }

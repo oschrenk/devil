@@ -25,6 +25,7 @@ struct TimerView: View {
   /// identical to the ones already there. Redrawing a few hundred marks for
   /// that is the most expensive thing on the screen and the least visible.
   @State private var drawnTrace = PourTrace()
+  @State private var flow: Double?
 
   /// Reads the clock itself rather than borrowing the timeline's tick, which is
   /// what lets the toolbar live outside the per-second redraw.
@@ -69,16 +70,22 @@ struct TimerView: View {
         if scale.state.isConnected {
           WeightReadout(
             grams: scale.weight,
-            target: recipe.cumulativeTarget(through: progress.step)
+            target: recipe.cumulativeTarget(through: progress.step),
+            flow: flow
           )
         }
-        Spacer(minLength: 0)
         // The schedule is what you read before starting. Once the water is
         // going the step card already says what to do and when, so the space
         // is worth more as the shape of the pour you are actually making.
+        //
+        // The graph sits directly under the bar it belongs to. Pushed to the
+        // foot of the screen it read as a separate panel, with the reading it
+        // explains an inch away.
         if seconds > 0, !drawnTrace.samples.isEmpty {
           PourGraph(recipe: recipe, trace: drawnTrace)
+          Spacer(minLength: 0)
         } else {
+          Spacer(minLength: 0)
           Schedule(recipe: recipe, progress: progress)
         }
       }
@@ -92,7 +99,12 @@ struct TimerView: View {
           scale.send(command)
         }
       }
-      // Every reading is kept. A Pearl S reports about ten times a second, so
+      // Keyed on the count of readings, not on the weight. A scale holding
+      // steady between pours sends the same number ten times a second, and
+      // `onChange` on the value sees none of them: the flat stretches went
+      // unrecorded and the graph drew every one of them as a dropout.
+      //
+      // Each reading is kept. A Pearl S reports about ten times a second, so
       // a brew is roughly two thousand of them and thirty kilobytes, which is
       // small enough that thinning would trade real pour data for nothing.
       // The chart thins a copy; the flow rate and the log want all of it.
@@ -100,8 +112,8 @@ struct TimerView: View {
       // Held readings are dropped rather than recorded flat. A pause is time
       // the brew did not spend, and writing it into the trace would flatten
       // the flow rate across a stretch where nothing was being poured.
-      .onChange(of: scale.weight) { _, grams in
-        guard let grams, seconds > 0, !clock.isHeld else { return }
+      .onChange(of: scale.weightSamples) { _, _ in
+        guard let grams = scale.weight, seconds > 0, !clock.isHeld else { return }
         let raw = Date.now.timeIntervalSince(brew.start)
         trace.append(seconds: clock.elapsed(raw: raw), grams: grams)
       }
@@ -110,6 +122,10 @@ struct TimerView: View {
       // equal and never enters the chart's body at all.
       .onChange(of: Int(seconds.rounded(.down))) { _, _ in
         drawnTrace = trace
+        // Over a second rather than between neighbouring readings. Two
+        // readings a hundredth apart differ mostly by noise, and a rate
+        // computed from them is unreadable however true it is.
+        flow = trace.flow(at: seconds, window: 1)
       }
       // The other half of the sync. Pressing stop on the scale holds the
       // phone's clock, through the same control the Pause button uses.
@@ -241,17 +257,26 @@ private struct CurrentStep: View {
   let recipe: Recipe
   let progress: BrewProgress
 
+  /// Kept across brews rather than reset each time. Whether the instructions
+  /// are wanted is a property of how well the recipe is known, not of today.
+  @AppStorage("stepInstructionsShown") private var isExpanded = true
+
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
-      HStack {
+      HStack(spacing: 10) {
         Text(progress.step.title)
           .font(.title2.weight(.semibold))
         Spacer()
         SwitchBadge(position: progress.step.switchPosition)
+        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+          .font(.footnote.weight(.semibold))
+          .foregroundStyle(.tertiary)
       }
 
-      ForEach(recipe.instructions(for: progress.step), id: \.self) { line in
-        InstructionRow(text: line)
+      if isExpanded {
+        ForEach(recipe.instructions(for: progress.step), id: \.self) { line in
+          InstructionRow(text: line)
+        }
       }
 
       if let seconds = progress.secondsUntilNextStep, let next = progress.nextStep {
@@ -264,6 +289,10 @@ private struct CurrentStep: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .padding()
     .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: 16))
+    // The whole card, not the chevron. A target the size of a fingertip is
+    // the wrong one to aim at with a kettle in the other hand.
+    .contentShape(.rect)
+    .onTapGesture { withAnimation(.snappy) { isExpanded.toggle() } }
   }
 }
 
@@ -279,40 +308,6 @@ private struct SwitchBadge: View {
     )
     .font(.headline)
     .foregroundStyle(position == .open ? .green : .orange)
-  }
-}
-
-private struct Schedule: View {
-  let recipe: Recipe
-  let progress: BrewProgress
-
-  /// Scales with the reader's text size, so the clock column never squeezes
-  /// `0:00` onto two lines. The step title gives way instead.
-  @ScaledMetric private var timeWidth: Double = 46
-
-  var body: some View {
-    VStack(spacing: 0) {
-      ForEach(Array(recipe.steps.enumerated()), id: \.element.start) { index, step in
-        HStack {
-          Text(step.start.formatted)
-            .monospacedDigit()
-            .fixedSize()
-            .frame(minWidth: timeWidth, alignment: .leading)
-          Text(step.title)
-            .lineLimit(2)
-          Spacer(minLength: 4)
-          if step.poured > 0 {
-            Text(Format.grams(step.poured))
-              .fixedSize()
-          }
-        }
-        .font(.subheadline)
-        .foregroundStyle(index == progress.stepIndex ? .primary : .tertiary)
-        .fontWeight(index == progress.stepIndex ? .semibold : .regular)
-        .padding(.vertical, 6)
-      }
-    }
-    .padding(.bottom)
   }
 }
 

@@ -36,6 +36,20 @@ public enum Format {
     return "1 : \(number(value))"
   }
 
+  /// A pour rate, always to one decimal.
+  ///
+  /// The figure is read while pouring, so a width that changes as the rate
+  /// crosses a whole number would make it jump under the eye. A negative rate
+  /// keeps its sign: the weight really is falling, usually because the server
+  /// has been lifted off.
+  public static func flow(_ value: Double) -> String {
+    let rounded = (value * 10).rounded() / 10
+    let sign = rounded < 0 ? "-" : ""
+    let whole = Int(abs(rounded))
+    let tenth = Int((abs(rounded) * 10).rounded()) % 10
+    return "\(sign)\(whole).\(tenth) g/s"
+  }
+
   /// `7.9`, `8.0`. Always one decimal, because that digit is the click on the
   /// grinder and dropping it turns 8.0 into a different setting.
   public static func grind(_ value: Double) -> String {

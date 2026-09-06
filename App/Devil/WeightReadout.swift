@@ -14,6 +14,12 @@ import SwiftUI
 struct WeightReadout: View {
   let grams: Double?
   let target: Double
+  /// Grams a second, or `nil` before there are enough readings to say.
+  let flow: Double?
+
+  /// Reserved on both sides of the weight, so the figure everyone actually
+  /// reads stays centred and does not slide sideways when the rate appears.
+  @ScaledMetric private var rateWidth: Double = 74
 
   private var reached: Bool {
     (grams ?? 0) >= target
@@ -26,11 +32,19 @@ struct WeightReadout: View {
 
   var body: some View {
     VStack(spacing: 6) {
-      Text(grams.map { Format.grams($0) } ?? "—")
-        .font(.system(size: 44, weight: .semibold, design: .rounded))
-        .monospacedDigit()
-        .contentTransition(.numericText())
-        .foregroundStyle(reached ? Color.green : .primary)
+      HStack(alignment: .firstTextBaseline, spacing: 8) {
+        Color.clear.frame(width: rateWidth, height: 0)
+        Text(grams.map { Format.grams($0) } ?? "—")
+          .font(.system(size: 44, weight: .semibold, design: .rounded))
+          .monospacedDigit()
+          .contentTransition(.numericText())
+          .foregroundStyle(reached ? Color.green : .primary)
+        Text(flow.map { Format.flow($0) } ?? "")
+          .font(.subheadline)
+          .monospacedDigit()
+          .foregroundStyle(.secondary)
+          .frame(width: rateWidth, alignment: .leading)
+      }
       HStack(spacing: 8) {
         ProgressView(value: fraction)
           .tint(reached ? .green : .accentColor)

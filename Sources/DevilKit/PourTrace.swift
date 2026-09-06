@@ -81,12 +81,29 @@ public struct PourTrace: Equatable, Sendable {
   /// Thinning first would space the readings a second apart, and every one of
   /// those intervals would then read as a gap: a brew that never dropped out
   /// would draw as a row of disconnected specks.
-  public func drawableSegments(limit: Int, maxGap: Double = 1) -> [[PourSample]] {
+  /// A reading outside `range` is pulled to the nearer edge rather than
+  /// dropped. Lifting the server reads well below zero, and a line that leaves
+  /// the frame either draws over the rest of the screen or vanishes and looks
+  /// like a dropout. Held at the edge it stays visible and stays in its box,
+  /// while the trace itself keeps the reading the scale actually sent.
+  public func drawableSegments(
+    limit: Int,
+    maxGap: Double = 1,
+    within range: ClosedRange<Double>? = nil
+  ) -> [[PourSample]] {
     let parts = segments(maxGap: maxGap)
-    guard samples.count > limit, limit > 1 else { return parts }
-    return parts.map { part in
-      let share = Double(part.count) / Double(samples.count) * Double(limit)
-      return Self.thin(part, to: max(2, Int(share.rounded())))
+    let sized: [[PourSample]] = samples.count > limit && limit > 1
+      ? parts.map { part in
+        let share = Double(part.count) / Double(samples.count) * Double(limit)
+        return Self.thin(part, to: max(2, Int(share.rounded())))
+      }
+      : parts
+    guard let range else { return sized }
+    return sized.map { part in
+      part.map {
+        let held = min(max($0.grams, range.lowerBound), range.upperBound)
+        return PourSample(seconds: $0.seconds, grams: held)
+      }
     }
   }
 }
