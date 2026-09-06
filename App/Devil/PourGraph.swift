@@ -24,10 +24,13 @@ struct PourGraph: View {
 
   var body: some View {
     Chart {
+      // The recipe's phases, dashed so they cannot be mistaken for the time
+      // scale. Solid and unnumbered they read as ticks whose labels went
+      // missing, which is exactly how they were read.
       ForEach(recipe.steps, id: \.start) { step in
         RuleMark(x: .value("Time", Double(step.start.seconds)))
           .foregroundStyle(.quaternary)
-          .lineStyle(StrokeStyle(lineWidth: 1))
+          .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 4]))
       }
       ForEach(drawn.indices, id: \.self) { index in
         ForEach(drawn[index]) { sample in
@@ -43,22 +46,26 @@ struct PourGraph: View {
     }
     .chartXScale(domain: 0 ... Double(recipe.totalTime.seconds))
     .chartYScale(domain: 0 ... recipe.waterThroughBed)
-    .chartYAxis(.hidden)
-    // The recipe's own times, not an even stride. `0:45` and `1:45` are when
-    // something happens; `0:50` and `1:40` are arithmetic, and reading the
-    // graph against them means doing that arithmetic in your head.
-    //
-    // Every step is ruled, but only the ones far enough apart are named:
-    // labelling all seven ran `0:00` into `0:10`.
+    // A line every hundred grams, unnumbered. The weight is already read off
+    // the figure above; these are here to judge a slope against.
+    .chartYAxis {
+      AxisMarks(values: .stride(by: 100)) {
+        AxisGridLine()
+      }
+    }
+    // The recipe's own times, not an even stride. `1:45` is when something
+    // happens; `1:40` is arithmetic, and reading the graph against it means
+    // doing that arithmetic in your head.
+    // The rule and its number are drawn by the same axis, not by a `RuleMark`
+    // placed alongside it. Drawn separately they came out sixteen points
+    // apart, because a mark is positioned in the plot and a label is not.
+    // A steady half minute, which is a scale you can read a slope against.
+    // The recipe's own times were tried first and were worse: they are
+    // unevenly spaced, so nothing about the axis was predictable.
     .chartXAxis {
-      AxisMarks(values: recipe.labelledStepTimes(minimumGap: 25).map(Double.init)) { value in
-        AxisValueLabel {
-          if let seconds = value.as(Double.self) {
-            Text(BrewTime(seconds: Int(seconds)).formatted)
-              .font(.caption2)
-              .monospacedDigit()
-          }
-        }
+      AxisMarks(values: .stride(by: 30)) { value in
+        AxisGridLine()
+        AxisValueLabel(BrewTime(seconds: Int(value.as(Double.self) ?? 0)).formatted, anchor: .top)
       }
     }
     .chartLegend(.hidden)
