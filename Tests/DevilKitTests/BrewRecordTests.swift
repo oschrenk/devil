@@ -12,10 +12,20 @@ struct BrewRecordTests {
       settings: BrewSettings(servings: 1),
       at: stamp,
       finished: true,
-      trace: "2026-09-06-0714.json"
+      trace: "2026-09-06T0714.json"
     )
     record.notes = notes
     return record
+  }
+
+  /// The `T` separates date from time. A second dash reads as another part of
+  /// the date, and a colon is illegal in a filename.
+  @Test("A brew names its files after the minute it started")
+  func stem() {
+    #expect(stamp.stem == "2026-09-06T0714")
+    #expect(BrewStamp(year: 2026, month: 12, day: 31, hour: 0, minute: 5).stem == "2026-12-31T0005")
+    #expect(stamp.readable == "2026-09-06 07:14")
+    #expect(stamp.timestamp == "2026-09-06T07:14:00+02:00")
   }
 
   @Test("A record survives the trip to markdown and back")

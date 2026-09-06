@@ -18,25 +18,25 @@ struct PourTraceJSONTests {
   func roundTrip() {
     let original = trace(count: 40)
 
-    let parsed = PourTrace.parse(json: original.json(brew: "2026-09-06-0714"))
+    let parsed = PourTrace.parse(json: original.json(brew: "2026-09-06T0714"))
 
-    #expect(parsed?.brew == "2026-09-06-0714")
+    #expect(parsed?.brew == "2026-09-06T0714")
     #expect(parsed?.trace.samples == original.samples)
   }
 
   @Test("A brew with no readings writes an empty list")
   func emptyTrace() {
-    let json = PourTrace().json(brew: "2026-09-06-0714")
+    let json = PourTrace().json(brew: "2026-09-06T0714")
 
-    #expect(json == "{\"brew\": \"2026-09-06-0714\", \"samples\": []}")
+    #expect(json == "{\"brew\": \"2026-09-06T0714\", \"samples\": []}")
     #expect(PourTrace.parse(json: json)?.trace.samples.isEmpty == true)
-    #expect(PourTrace.parse(json: json)?.brew == "2026-09-06-0714")
+    #expect(PourTrace.parse(json: json)?.brew == "2026-09-06T0714")
   }
 
   /// Pairs rather than objects, because a brew is two thousand readings.
   @Test("A whole brew stays under forty kilobytes")
   func size() {
-    let json = trace(count: 2000).json(brew: "2026-09-06-0714")
+    let json = trace(count: 2000).json(brew: "2026-09-06T0714")
 
     #expect(json.utf8.count < 40000)
     #expect(json.utf8.count > 10000)

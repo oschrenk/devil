@@ -38,10 +38,20 @@ public struct BrewStamp: Equatable, Sendable {
     return short > 0 ? String(repeating: "0", count: short) + digits : digits
   }
 
-  /// `2026-09-06-0714`, which names both files.
+  /// `2026-09-06T0714`, which names both files.
+  ///
+  /// The `T` separates the date from the time, where a second dash reads as
+  /// another part of the date. Strict ISO 8601 refuses to mix an extended
+  /// date with a basic time, and the strictly correct `20260906T0714` reads
+  /// worse and sits badly beside a vault of `2026-09-06` notes.
+  ///
+  /// No colon, because that is illegal in a filename on Windows and Finder
+  /// rewrites it. No space, because every shell that touches these files
+  /// would then need quoting. `brewed` in the frontmatter is real ISO 8601,
+  /// offset and all, and that is the machine-readable one.
   public var stem: String {
     let date = "\(Self.padded(year, 4))-\(Self.padded(month, 2))-\(Self.padded(day, 2))"
-    return "\(date)-\(Self.padded(hour, 2))\(Self.padded(minute, 2))"
+    return "\(date)T\(Self.padded(hour, 2))\(Self.padded(minute, 2))"
   }
 
   /// `2026-09-06 07:14`, for the heading.
