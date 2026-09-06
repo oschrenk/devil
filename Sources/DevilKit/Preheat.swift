@@ -22,6 +22,12 @@ public struct PreheatPlan: Equatable, Sendable {
     self.safety = safety
   }
 
+  /// Five millilitres a press.
+  ///
+  /// Ten was too coarse to settle on a kettle fill: the boil figure is the sum
+  /// of four of these, so a ten-step in any of them moved the total by ten.
+  public static let step = 5.0
+
   public static let standard = PreheatPlan()
 }
 

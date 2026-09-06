@@ -87,14 +87,20 @@ struct ContentView: View {
         Section {
           LabelledValue(label: "Boil", value: recipe.tapToBoil.millilitres)
             .fontWeight(.semibold)
-          Stepper(value: $settings.preheat.cone, in: 0 ... 400, step: 10) {
+          Stepper(value: $settings.preheat.cone, in: 0 ... 400, step: PreheatPlan.step) {
             LabelledValue(label: "Cone", value: recipe.preheat.cone.millilitres)
           }
-          Stepper(value: $settings.preheat.vessel, in: 0 ... 300, step: 10) {
+          Stepper(value: $settings.preheat.vessel, in: 0 ... 300, step: PreheatPlan.step) {
             LabelledValue(label: "Vessel", value: recipe.preheat.vessel.millilitres)
           }
-          Stepper(value: $settings.preheat.perCup, in: 0 ... 200, step: 10) {
+          Stepper(value: $settings.preheat.perCup, in: 0 ... 200, step: PreheatPlan.step) {
             LabelledValue(label: cupsLabel, value: recipe.preheat.cups.millilitres)
+          }
+          // The slack is not preheat and does not warm anything. It is here
+          // because it is the fourth thing that goes into the boil, and the
+          // boil figure above is the sum of all four.
+          Stepper(value: $settings.preheat.safety, in: 0 ... 100, step: PreheatPlan.step) {
+            LabelledValue(label: "Slack", value: recipe.preheat.safety.millilitres)
           }
         } header: {
           Text("Preheat")
