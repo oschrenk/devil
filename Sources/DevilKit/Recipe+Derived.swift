@@ -29,6 +29,19 @@ public extension Recipe {
     return next.start.seconds - step.start.seconds
   }
 
+  /// How much water has gone through the bed by the end of a step.
+  ///
+  /// The figure a scale should read at that point, given the server was tared
+  /// empty. A step that pours nothing inherits the total before it, so a swirl
+  /// or a drain names the number the previous pour reached rather than a new
+  /// one, which is what makes it usable as a target throughout.
+  func cumulativeTarget(through step: Step) -> Double {
+    steps
+      .sorted { $0.start < $1.start }
+      .prefix { $0.start <= step.start }
+      .reduce(0) { $0 + $1.poured }
+  }
+
   /// The step in force at `seconds` on the brew clock.
   func step(atSeconds seconds: Int) -> Step? {
     steps.last { $0.start.seconds <= seconds }
