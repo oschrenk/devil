@@ -34,8 +34,21 @@ public struct BrewClock: Equatable, Sendable {
   /// Hold the clock. Holding an already-held clock does nothing, so a repeated
   /// tap cannot lose the moment the first one recorded.
   public mutating func hold(raw: Double) {
+    hold(showing: elapsed(raw: raw))
+  }
+
+  /// Hold the clock, and decide what it reads while held.
+  ///
+  /// The scale sends its final time when it stops and then goes quiet, so the
+  /// app learns of the stop a few seconds late. Holding at the time the scale
+  /// reported, rather than at the moment the silence was noticed, keeps the two
+  /// clocks agreeing instead of recording the delay.
+  ///
+  /// Resuming continues from that same reading, because a hold is stored as
+  /// the point the clock stopped rather than as a wall-clock instant.
+  public mutating func hold(showing elapsed: Double) {
     guard heldAt == nil else { return }
-    heldAt = raw
+    heldAt = elapsed + heldTotal
   }
 
   /// Let the clock go, adding however long it was held to the running total.

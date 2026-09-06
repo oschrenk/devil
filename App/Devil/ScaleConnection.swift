@@ -45,6 +45,18 @@ final class ScaleConnection: NSObject {
   /// alone would notice only the first.
   private(set) var lastButton: AcaiaButton?
   private(set) var buttonCount = 0
+  private(set) var firmware: String?
+  /// Whether the scale's own clock is moving, worked out from its time. This
+  /// scale sends no key events, so its time is the only signal there is.
+  private(set) var timerIsRunning: Bool?
+  private(set) var timerHasPaused = false
+  /// Bumped whenever the answer changes, which is what a view watches: the
+  /// same answer arriving twice is not a moment to act on.
+  private(set) var timerStateChanges = 0
+  /// When the last timer message arrived. A running scale reports every couple
+  /// of seconds; a stopped one sends its final time and then says nothing, so
+  /// silence is the signal rather than a repeated value.
+  private(set) var lastTimerAt: Date?
 
   /// The scale to reconnect to, remembered across launches. A peripheral's
   /// identifier is stable per app, so this is all it takes to skip the picker
@@ -59,15 +71,22 @@ final class ScaleConnection: NSObject {
   // shared mutable global as far as Swift 6 is concerned.
   private let write = CBUUID(string: "49535343-8841-43F4-A8D4-ECBE34729BB3")
   private let notify = CBUUID(string: "49535343-1E4D-4BD9-BA61-23C647249616")
+  /// Standard Device Information Service, firmware revision string. Nothing
+  /// Acaia-specific: every BLE device that bothers offers it.
+  private let firmwareRevision = CBUUID(string: "2A26")
   /// The scale drops a link that goes quiet. Five seconds is what the
   /// maintained implementations settle on.
-  private static let heartbeat: TimeInterval = 5
+  /// One second, not the five the published implementations use. The timer
+  /// rides on the heartbeat, and a stopped scale is found by noticing it has
+  /// gone quiet, so a faster pulse is a faster answer.
+  private static let heartbeat: TimeInterval = 1
   private static let namePrefixes = ["PEARL", "ACAIA", "PYXIS", "LUNAR", "PROCH", "CINCO"]
 
   private var central: CBCentralManager?
   private var peripheral: CBPeripheral?
   private var writeCharacteristic: CBCharacteristic?
   private var decoder = AcaiaDecoder()
+  private var watch = ScaleTimerWatch()
   private var pulse: Timer?
 
   /// Built on first use, never at launch.
@@ -176,6 +195,7 @@ extension ScaleConnection: CBCentralManagerDelegate {
 
   func centralManager(_: CBCentralManager, didConnect peripheral: CBPeripheral) {
     decoder = AcaiaDecoder()
+    watch = ScaleTimerWatch()
     peripheral.discoverServices(nil)
   }
 
@@ -204,7 +224,7 @@ extension ScaleConnection: CBCentralManagerDelegate {
 extension ScaleConnection: CBPeripheralDelegate {
   func peripheral(_ peripheral: CBPeripheral, didDiscoverServices _: Error?) {
     for service in peripheral.services ?? [] {
-      peripheral.discoverCharacteristics([write, notify], for: service)
+      peripheral.discoverCharacteristics([write, notify, firmwareRevision], for: service)
     }
   }
 
@@ -219,6 +239,9 @@ extension ScaleConnection: CBPeripheralDelegate {
       }
       if characteristic.uuid == notify {
         peripheral.setNotifyValue(true, for: characteristic)
+      }
+      if characteristic.uuid == firmwareRevision {
+        peripheral.readValue(for: characteristic)
       }
     }
   }
@@ -245,6 +268,10 @@ extension ScaleConnection: CBPeripheralDelegate {
     error _: Error?
   ) {
     guard let value = characteristic.value else { return }
+    if characteristic.uuid == firmwareRevision {
+      firmware = String(data: value, encoding: .utf8)
+      return
+    }
     for message in decoder.append([UInt8](value)) {
       apply(message, from: peripheral)
     }
@@ -256,6 +283,12 @@ extension ScaleConnection: CBPeripheralDelegate {
       weight = grams
     case let .timer(seconds):
       scaleSeconds = seconds
+      lastTimerAt = .now
+      if watch.observe(seconds: seconds) {
+        timerIsRunning = watch.isRunning
+        timerHasPaused = watch.hasPaused
+        timerStateChanges += 1
+      }
     case let .button(button, grams, seconds):
       lastButton = button
       buttonCount += 1

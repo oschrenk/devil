@@ -44,7 +44,7 @@ struct AcaiaCommandTests {
 
   @Test("Subscribe asks for weight, battery, timer and buttons")
   func subscribe() {
-    #expect(AcaiaCommand.subscribe.bytes == hex("efdd0c0900010102020503041506"))
+    #expect(AcaiaCommand.subscribe.bytes == hex("efdd0c0900010102020103041106"))
   }
 
   @Test("Every command is framed and checksummed")

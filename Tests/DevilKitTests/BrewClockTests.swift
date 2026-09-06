@@ -97,3 +97,52 @@ struct BrewClockTests {
     #expect(clock.elapsed(raw: 100) == 100)
   }
 }
+
+@Suite("Holding at a reported time")
+struct BrewClockReportedTests {
+  /// The scale's stop arrives a few seconds after the fact. Holding at its
+  /// reading rather than at the moment of noticing keeps the clocks together.
+  @Test("A hold can be placed at a time the scale reported")
+  func holdsAtAReportedTime() {
+    var clock = BrewClock()
+    clock.hold(showing: 55)
+
+    #expect(clock.isHeld)
+    #expect(clock.elapsed(raw: 60) == 55)
+    #expect(clock.elapsed(raw: 90) == 55)
+  }
+
+  @Test("Releasing continues from the reported time, not from where it was noticed")
+  func resumesFromTheReportedTime() {
+    var clock = BrewClock()
+    clock.hold(showing: 55)
+    clock.release(raw: 100)
+
+    #expect(clock.elapsed(raw: 100) == 55)
+    #expect(clock.elapsed(raw: 101) == 56)
+  }
+
+  /// Holding at the clock's own reading has to behave exactly as the plain
+  /// hold does, because that is what the plain hold now is.
+  @Test("A hold at the current reading matches an ordinary hold")
+  func matchesAnOrdinaryHold() {
+    var byRaw = BrewClock()
+    var byReading = BrewClock()
+    byRaw.hold(raw: 42)
+    byReading.hold(showing: 42)
+
+    #expect(byRaw == byReading)
+  }
+
+  @Test("Reported holds accumulate the same way across a brew")
+  func repeatedReportedHolds() {
+    var clock = BrewClock()
+    clock.hold(showing: 20)
+    clock.release(raw: 50)
+    clock.hold(showing: 25)
+    clock.release(raw: 90)
+
+    #expect(clock.elapsed(raw: 90) == 25)
+    #expect(clock.elapsed(raw: 95) == 30)
+  }
+}

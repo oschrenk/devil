@@ -16,6 +16,7 @@ struct TimerView: View {
   @Environment(\.dismiss) private var dismiss
   @State private var clock = BrewClock()
   @State private var startSignal = BrewStartSignal()
+  @State private var pausedBy = PauseSource.phone
 
   /// Reads the clock itself rather than borrowing the timeline's tick, which is
   /// what lets the toolbar live outside the per-second redraw.
@@ -25,10 +26,16 @@ struct TimerView: View {
       clock.release(raw: raw)
       scale.send(.startTimer)
     } else {
+      pausedBy = .phone
       clock.hold(raw: raw)
       scale.send(.stopTimer)
     }
   }
+
+  /// Long enough to be silence rather than a gap between messages. The scale
+  /// reports about every second once the subscription asks for one per
+  /// heartbeat and the heartbeat runs at one, so this is three intervals.
+  private static let scaleSilence: TimeInterval = 3
 
   var body: some View {
     // Ticks from the press, not from 0:00, so the lead-in counts down too, and
@@ -47,7 +54,7 @@ struct TimerView: View {
           hasScale: scale.state.isConnected
         )
         if clock.isHeld {
-          HeldNote()
+          HeldNote(source: pausedBy)
         } else {
           CurrentStep(recipe: recipe, progress: progress)
         }
@@ -75,6 +82,34 @@ struct TimerView: View {
         let reaction = ScaleControl.reaction(to: scale.lastButton, clockIsHeld: clock.isHeld)
         if reaction == .holdTheClock {
           clock.hold(raw: raw)
+        }
+      }
+      // The scale reports no key events, and a stopped one sends its final
+      // time and then goes quiet. So silence is the signal, not a repeated
+      // value: no timer message for a few seconds during a brew means the
+      // scale stopped. Checked on the tick, because silence has no event.
+      .onChange(of: Int(seconds.rounded(.down))) { _, _ in
+        guard startSignal.hasSent, scale.state.isConnected, !clock.isHeld,
+              let last = scale.lastTimerAt,
+              Date.now.timeIntervalSince(last) > Self.scaleSilence
+        else { return }
+        // At the time the scale reported, not at the moment the silence was
+        // noticed. The scale's last message holds its final reading, and using
+        // it keeps the two clocks agreeing rather than banking the delay.
+        pausedBy = .scale
+        clock.hold(showing: scale.scaleSeconds ?? seconds)
+      }
+      // The faster of the two paths, and the reason both exist. When the
+      // scale does repeat its final time, that repeat arrives in about a
+      // second, where silence takes three. Whichever notices first wins.
+      .onChange(of: scale.timerStateChanges) { _, _ in
+        guard startSignal.hasSent else { return }
+        if scale.timerHasPaused, !clock.isHeld {
+          pausedBy = .scale
+          clock.hold(showing: scale.scaleSeconds ?? seconds)
+        } else if scale.timerIsRunning == true, clock.isHeld {
+          // A scale that speaks again has been restarted, so let the brew go.
+          clock.release(raw: raw)
         }
       }
     }
@@ -260,16 +295,34 @@ private struct InstructionRow: View {
   }
 }
 
+/// Who stopped the clock.
+///
+/// Worth saying. A pause nobody remembers causing is a knocked scale or a
+/// stray press, and knowing which end it came from is the difference between
+/// carrying on and looking at the counter.
+enum PauseSource {
+  case phone
+  case scale
+}
+
 /// What a held brew says.
 ///
 /// The clock stops and the kettle does not, so a long hold leaves the recipe's
 /// temperatures behind even though the times still line up. Better said once,
 /// here, than discovered in the cup.
 private struct HeldNote: View {
+  let source: PauseSource
+
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
-      Text("Paused")
-        .font(.title2.weight(.semibold))
+      HStack(spacing: 8) {
+        if source == .scale {
+          Image(systemName: "scalemass.fill")
+        }
+        Text(source == .scale ? "Paused on the scale" : "Paused")
+      }
+      .font(.title2.weight(.semibold))
+      .foregroundStyle(source == .scale ? Color.orange : .primary)
       Text("The clock has stopped. The kettle has not.")
         .font(.subheadline)
         .foregroundStyle(.secondary)

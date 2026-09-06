@@ -35,7 +35,10 @@ public enum AcaiaCommand: Equatable, Sendable, CaseIterable {
     case .stopTimer: [0, 2]
     case .heartbeat: [2, 0]
     case .identify: Array("012345678901234".utf8)
-    case .subscribe: [9, 0, 1, 1, 2, 2, 5, 3, 4]
+    // The timer's value is how many heartbeats pass between timer messages.
+    // One, not five: a stopped scale goes silent, so the app finds out by
+    // noticing the silence, and shorter gaps mean noticing it sooner.
+    case .subscribe: [9, 0, 1, 1, 2, 2, 1, 3, 4]
     }
   }
 
