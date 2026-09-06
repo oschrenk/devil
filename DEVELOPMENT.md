@@ -52,6 +52,7 @@ The team ID can stay empty until you install on a phone.
 - `task test` Run the `DevilKit` tests
 - `task run` Build, install and launch on a simulator
 - `task icon` Redraw the app icon from `scripts/make-icon.swift`
+- `task icons` Draw every variant plus a contact sheet, to choose a new one
 - `task format` Format using the rules in `.swiftformat`
 - `task lint` Lint using the rules in `.swiftlint.yml`
 - `task device` Build and install on a connected iPhone

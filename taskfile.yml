@@ -84,7 +84,15 @@ tasks:
   # a build needs no extra step; this is only for changing the artwork.
   icon:
     cmds:
-      - swift scripts/make-icon.swift App/Devil/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+      - swift scripts/make-icon.swift icon App/Devil/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+  # Draws every variant in the script plus a numbered contact sheet, which is
+  # how the shipped one was picked. Writes outside the repository on purpose.
+  icons:
+    cmds:
+      - swift scripts/make-icon.swift sheet {{.DIR}} {{.SIZE}}
+    vars:
+      DIR: '{{.DIR | default "/tmp/devil-icons"}}'
+      SIZE: '{{.SIZE | default "512"}}'
     silent: true
   format:
     cmds:
