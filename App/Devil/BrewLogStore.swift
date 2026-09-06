@@ -38,6 +38,46 @@ struct BrewLogStore {
     folder.appending(path: "\(stem).json")
   }
 
+  /// What a share sheet hands over.
+  ///
+  /// The sidecar joins only when it is on disk. A brew made without a scale
+  /// has none, and offering a file that is not there fails at the moment the
+  /// sheet opens, which is the worst moment to find out.
+  func files(for record: BrewRecord) -> [URL] {
+    let stem = record.stamp.stem
+    var files = [markdown(for: stem)]
+    if FileManager.default.fileExists(atPath: trace(for: stem).path()) {
+      files.append(trace(for: stem))
+    }
+    return files
+  }
+
+  /// Every brew on disk, newest first.
+  ///
+  /// Read each time rather than cached. The files are the store, so a brew
+  /// edited in another app is the brew this returns.
+  ///
+  /// Sorting by stem is sorting by time. The name is zero-padded from year
+  /// down to minute, so its alphabetical order is its chronological one, and
+  /// no date has to be parsed to put the list in order.
+  func brews() -> [BrewRecord] {
+    let names = (try? FileManager.default.contentsOfDirectory(atPath: folder.path())) ?? []
+    return names
+      .filter { $0.hasSuffix(".md") }
+      .compactMap { name -> BrewRecord? in
+        let text = try? String(contentsOf: folder.appending(path: name), encoding: .utf8)
+        return text.flatMap(BrewRecord.parse(markdown:))
+      }
+      .sorted { $0.stamp.stem > $1.stamp.stem }
+  }
+
+  /// Removes a brew and its sidecar. A missing sidecar is not a failure.
+  func delete(_ record: BrewRecord) {
+    let stem = record.stamp.stem
+    try? FileManager.default.removeItem(at: markdown(for: stem))
+    try? FileManager.default.removeItem(at: trace(for: stem))
+  }
+
   /// Writes the pair, and returns the stem they share.
   ///
   /// A brew with no readings writes no sidecar. An empty `samples` array on

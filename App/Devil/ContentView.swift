@@ -139,6 +139,19 @@ struct ContentView: View {
         }
       }
       .navigationTitle(recipe.brewer)
+      // Top left, and not a row in the form. The `Scale` section earns a row
+      // because you read its state before brewing. The log holds no state
+      // that belongs on this screen, and a toolbar button costs no scrolling
+      // past the steppers at six in the morning.
+      .toolbar {
+        ToolbarItem(placement: .topBarLeading) {
+          NavigationLink {
+            BrewLogView(store: BrewLogStore())
+          } label: {
+            Label("Brews", systemImage: "list.bullet.rectangle")
+          }
+        }
+      }
       .navigationBarTitleDisplayMode(.inline)
       .monospacedDigit()
     }
