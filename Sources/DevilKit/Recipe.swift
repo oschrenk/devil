@@ -33,23 +33,6 @@ public struct Cooler: Equatable, Sendable {
   }
 }
 
-/// Water poured before the coffee, to warm the brewer, the server and the cup.
-public struct Preheat: Equatable, Sendable {
-  public var temperature: Double
-  public var throughBrewer: Double
-  public var intoCup: Double
-
-  public init(temperature: Double, throughBrewer: Double, intoCup: Double) {
-    self.temperature = temperature
-    self.throughBrewer = throughBrewer
-    self.intoCup = intoCup
-  }
-
-  public var total: Double {
-    throughBrewer + intoCup
-  }
-}
-
 /// A whole brew, from the grind setting to the last drip.
 ///
 /// Every stored value appears somewhere in `RECIPE.md`. Everything that can be
@@ -60,6 +43,8 @@ public struct Recipe: Equatable, Sendable {
   public var brewer: String
   public var grinder: String
   public var filter: Filter
+  /// Recorded, not used. Nothing here is computed from the grind.
+  public var grindSetting: Double
   public var roast: String
   public var dose: Double
   public var kettleFill: KettleFill
@@ -76,11 +61,20 @@ public struct Recipe: Equatable, Sendable {
   public var preheat: Preheat
   public var steps: [Step]
 
+  /// Tap water to put in the kettle at the start, if you fill it once.
+  ///
+  /// The preheat, the brew's tap portion and the slack, all together. The
+  /// demineralized water is added later, after the preheat has been poured off.
+  public var tapToBoil: Double {
+    preheat.total + preheat.safety + kettleFill.tap
+  }
+
   public init(
     name: String,
     brewer: String,
     grinder: String,
     filter: Filter,
+    grindSetting: Double,
     roast: String,
     dose: Double,
     kettleFill: KettleFill,
@@ -95,6 +89,7 @@ public struct Recipe: Equatable, Sendable {
     self.brewer = brewer
     self.grinder = grinder
     self.filter = filter
+    self.grindSetting = grindSetting
     self.roast = roast
     self.dose = dose
     self.kettleFill = kettleFill
@@ -104,12 +99,5 @@ public struct Recipe: Equatable, Sendable {
     self.temperatureTarget = temperatureTarget
     self.preheat = preheat
     self.steps = steps
-  }
-}
-
-public extension Recipe {
-  /// The setting the current filter calls for.
-  var grindSetting: String {
-    filter.grindSetting
   }
 }

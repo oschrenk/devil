@@ -176,3 +176,64 @@ struct TemperatureSettingTests {
     #expect(abs(cooler.kettleTemperatureAfterCooler - 70) < 0.5)
   }
 }
+
+@Suite("Preheat")
+struct PreheatTests {
+  /// Only the cup scales. The vessel and the cone are the same however many
+  /// people are drinking, so the preheat grows by one cup at a time.
+  @Test("Only the cup part grows with the people")
+  func onlyTheCupScales() {
+    for servings in 1 ... 5 {
+      let recipe = Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: servings))
+
+      #expect(recipe.preheat.cups == 50 * Double(servings))
+      #expect(recipe.preheat.vessel == 50)
+      #expect(recipe.preheat.cone == 150)
+      #expect(recipe.preheat.total == 200 + 50 * Double(servings))
+    }
+  }
+
+  @Test("The kettle fill is the preheat, the brew tap and the slack")
+  func kettleFillScales() {
+    let expected: [Int: Double] = [1: 400, 2: 512.5, 3: 625, 4: 737.5, 5: 850]
+
+    for (servings, litres) in expected {
+      let recipe = Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: servings))
+      #expect(recipe.tapToBoil == litres)
+    }
+  }
+
+  @Test("Skipping a warm-up takes it out of the fill, and nothing else moves")
+  func skippingAWarmUp() {
+    let full = Recipe.switchWaterAndTempManaged(for: BrewSettings())
+    let noCup = Recipe.switchWaterAndTempManaged(
+      for: BrewSettings(preheat: PreheatPlan(perCup: 0))
+    )
+
+    #expect(noCup.preheat.total == full.preheat.total - 50)
+    #expect(noCup.tapToBoil == full.tapToBoil - 50)
+    #expect(noCup.delivered == full.delivered)
+    #expect(noCup.steps == full.steps)
+  }
+}
+
+@Suite("Ratio")
+struct RatioTests {
+  /// 50/3 exactly, at every size, because dose and water are both linear in
+  /// (servings + 1) and the term cancels.
+  @Test("The ratio repeats rather than rounds, at every size")
+  func ratioIsExactlyFiftyThirds() {
+    for servings in 1 ... 5 {
+      let recipe = Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: servings))
+
+      #expect(abs(recipe.brewRatio - 50.0 / 3.0) < 0.000_000_1)
+      #expect(Format.ratio(recipe.brewRatio) == "1 : 16.6\u{0305}")
+    }
+  }
+
+  @Test("A ratio that does not repeat is written plainly")
+  func otherRatiosFallBack() {
+    #expect(Format.ratio(15) == "1 : 15")
+    #expect(Format.ratio(16.5) == "1 : 16.5")
+  }
+}

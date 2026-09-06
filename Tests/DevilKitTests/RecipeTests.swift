@@ -19,27 +19,59 @@ struct RecipeTests {
     #expect(recipe.temperatureTarget == 75)
   }
 
-  /// The grind is a property of the paper, not of the recipe. Abaca flows
-  /// faster than Hario's and needs a finer setting to hold the contact time.
-  @Test("The grind follows the filter, 7.9 with Hario and 7.5 with Abaca")
-  func grindFollowsTheFilter() {
-    #expect(recipe.grindSetting == "7.9")
+  /// The filter supplies the starting point. Abaca flows faster than Hario's
+  /// and takes a finer setting to hold the contact time.
+  @Test("An unset grind starts at the filter's default")
+  func grindDefaultsToTheFilter() {
+    #expect(recipe.grindSetting == 7.9)
 
-    var abaca = recipe
-    abaca.filter = .abaca
-    #expect(abaca.grindSetting == "7.5")
+    let abaca = Recipe.switchWaterAndTempManaged(for: BrewSettings(filter: .abaca))
+    #expect(abaca.grindSetting == 7.5)
 
     // Swapping paper changes nothing about the water.
     #expect(abaca.delivered == recipe.delivered)
     #expect(abaca.waterThroughBed == recipe.waterThroughBed)
   }
 
-  @Test("The preheat is 300 g, split 200 through the brewer and 100 into the cup")
+  /// It is recorded, not used, so it has to be free to move.
+  @Test("A grind set by hand overrides the filter and changes nothing else")
+  func grindIsAdjustable() {
+    let dialled = Recipe.switchWaterAndTempManaged(
+      for: BrewSettings(filter: .abaca, grindSetting: 8.2)
+    )
+
+    #expect(dialled.grindSetting == 8.2)
+    #expect(dialled.filter == .abaca)
+    #expect(dialled.delivered == recipe.delivered)
+    #expect(dialled.kettleFill == recipe.kettleFill)
+    #expect(dialled.cooler == recipe.cooler)
+    #expect(dialled.steps == recipe.steps)
+  }
+
+  @Test("A grind keeps its decimal, because that digit is a click")
+  func grindFormatting() {
+    #expect(Format.grind(7.9) == "7.9")
+    #expect(Format.grind(8) == "8.0")
+    #expect(Format.grind(8.25) == "8.3")
+  }
+
+  @Test("The preheat is 250 ml for one: 150 cone, 50 vessel, 50 cup")
   func preheat() {
     #expect(recipe.preheat.temperature == 96)
+    #expect(recipe.preheat.cone == 150)
+    #expect(recipe.preheat.vessel == 50)
+    #expect(recipe.preheat.cups == 50)
+    #expect(recipe.preheat.total == 250)
+    // The cone and the vessel are warmed in one pass through the Switch.
     #expect(recipe.preheat.throughBrewer == 200)
-    #expect(recipe.preheat.intoCup == 100)
-    #expect(recipe.preheat.total == 300)
+  }
+
+  /// The number to act on before anything else is on: one kettle fill covering
+  /// the preheat, the brew's tap portion and the slack.
+  @Test("One kettle fill is 400 ml of tap for one person")
+  func tapToBoil() {
+    #expect(recipe.tapToBoil == 400)
+    #expect(recipe.tapToBoil == recipe.preheat.total + 25 + recipe.kettleFill.tap)
   }
 
   @Test("The kettle holds 125 g tap and 113 g demineralized, so 238 g")

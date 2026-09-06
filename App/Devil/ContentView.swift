@@ -10,6 +10,20 @@ struct ContentView: View {
     .switchWaterAndTempManaged(for: settings)
   }
 
+  private var cupsLabel: String {
+    guard settings.servings > 1 else { return "Cup" }
+    return "Cups, \(settings.servings) x \(Format.number(settings.preheat.perCup))"
+  }
+
+  /// Says where the boil figure comes from, so it can be checked rather than
+  /// trusted.
+  private var boilBreakdown: String {
+    let preheat = recipe.preheat.total.millilitres
+    let tap = recipe.kettleFill.tap.millilitres
+    let slack = recipe.preheat.safety.millilitres
+    return "\(preheat) of preheat, plus \(tap) of brew tap and \(slack) of slack."
+  }
+
   var body: some View {
     NavigationStack {
       Form {
@@ -24,16 +38,46 @@ struct ContentView: View {
             Text("Hario").tag(Filter.harioV60Size02)
             Text("Abaca").tag(Filter.abaca)
           }
-          LabelledValue(label: "Grind", value: recipe.grindSetting)
+          Stepper(
+            value: $settings.grindSetting,
+            in: BrewSettings.grindRange,
+            step: 0.1
+          ) {
+            LabelledValue(label: "Grind", value: Format.grind(recipe.grindSetting))
+          }
+        }
+        // Picking the paper moves the grind to what that paper usually wants.
+        // Dialling in from there is the point of the stepper, so the snap only
+        // happens on the change and never undoes a later edit.
+        .onChange(of: settings.filter) { _, filter in
+          settings.grindSetting = filter.defaultGrind
         }
 
         Section("Temperature") {
-          Stepper(value: $settings.brewTemperature, in: 85 ... 96, step: 0.5) {
+          Stepper(value: $settings.brewTemperature, in: 85 ... 96, step: 1) {
             LabelledValue(label: "Kettle", value: recipe.brewTemperature.degrees)
           }
           Stepper(value: $settings.temperatureTarget, in: 65 ... 85, step: 1) {
             LabelledValue(label: "Last pour", value: recipe.temperatureTarget.degrees)
           }
+        }
+
+        Section {
+          LabelledValue(label: "Boil", value: recipe.tapToBoil.millilitres)
+            .fontWeight(.semibold)
+          Stepper(value: $settings.preheat.cone, in: 0 ... 400, step: 10) {
+            LabelledValue(label: "Cone", value: recipe.preheat.cone.millilitres)
+          }
+          Stepper(value: $settings.preheat.vessel, in: 0 ... 300, step: 10) {
+            LabelledValue(label: "Vessel", value: recipe.preheat.vessel.millilitres)
+          }
+          Stepper(value: $settings.preheat.perCup, in: 0 ... 200, step: 10) {
+            LabelledValue(label: cupsLabel, value: recipe.preheat.cups.millilitres)
+          }
+        } header: {
+          Text("Preheat")
+        } footer: {
+          Text(boilBreakdown)
         }
 
         Section("Kettle") {
@@ -52,7 +96,7 @@ struct ContentView: View {
 
         Section {
           LabelledValue(label: "Through the bed", value: recipe.waterThroughBed.grams)
-          LabelledValue(label: "Ratio", value: "1 : \(Format.number(recipe.brewRatio))")
+          LabelledValue(label: "Ratio", value: Format.ratio(recipe.brewRatio))
           LabelledValue(label: "Finish", value: recipe.finish?.formatted ?? "not timed")
         }
 
@@ -139,6 +183,10 @@ private extension Double {
 
   var degrees: String {
     Format.degrees(self)
+  }
+
+  var millilitres: String {
+    "\(Format.number(self)) ml"
   }
 }
 

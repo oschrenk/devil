@@ -27,6 +27,7 @@ A complex Switch recipe that does **three things at once**:
 - **Mid-brew temp target**: 75 °C
 - **Total brew time**: ~3:15, observed
 - **Preheat kettle setting**: 96 °C (max usable at Guatemala City altitude before bubbling)
+- **Single kettle fill**: 400 ml tap for one cup (250 preheat + 125 brew + 25 slack)
 
 ### Gear
 
@@ -43,10 +44,14 @@ A complex Switch recipe that does **three things at once**:
 
 ### Water Plan
 
-**Preheat** — 300 ml total
+**Preheat** — 250 ml total for one cup
 
-- 200 ml: through Switch + filter into server
-- 100 ml: into the cup
+- 150 ml: the cone.
+  Pour it through the Switch with the filter in place, which rinses the paper
+- 50 ml: the vessel.
+  It goes in the same pass, into the server below
+- 50 ml per cup: the drinking cup.
+  This is the only part that grows with the people
 - Source: any water; kettle at 96 °C (boiling)
 
 **Brew water in kettle** — 238 g, heated to 92 °C
@@ -70,11 +75,12 @@ A complex Switch recipe that does **three things at once**:
 
 To skip the kettle refill between preheat and brew:
 
-1. Put **450 ml tap water** in the kettle from the start.
+1. Put **400 ml tap water** in the kettle from the start, for one cup.
+   Add 50 ml for every extra cup.
    Heat to 96 °C.
-2. Pour off 300 ml for preheating (200 ml through Switch + filter into server, 100 ml into the cup).
+2. Pour off 250 ml for preheating (200 ml through the Switch into the server, 50 ml into the cup).
 3. About 150 ml tap remains.
-   The 25 ml over is slack, because you cannot pour off exactly 300 ml.
+   The 25 ml over is slack, because you cannot pour off an exact amount.
 4. **Pour off the surplus until exactly 125 g tap remains.**
    Skip this and you lose the point of the recipe.
    150 g tap gives a 55/45 cup, and the cold add reaches only 77.6 °C.
@@ -95,10 +101,10 @@ To skip the kettle refill between preheat and brew:
 
 #### 2. Preheat (Kettle at 96 °C)
 
-1. Boil ~300 ml in the kettle.
+1. Boil ~250 ml in the kettle, or the full 400 ml if you are filling it once.
 2. Pour ~200 ml through the Switch (filter in place), with closed switch and with negotiator seated into the Hario server.
    Rinses the filter and preheats Switch + server in one pass.
-3. Pour ~100 ml into the drinking cup.
+3. Pour ~50 ml into the drinking cup, for each cup.
 4. Just before brewing, discard preheat water from the server.
 5. Just before serving, discard preheat water from the cup.
 

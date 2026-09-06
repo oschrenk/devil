@@ -14,6 +14,7 @@ public extension Recipe {
       brewer: "Hario Switch",
       grinder: "1Zpresso K-Ultra",
       filter: settings.filter,
+      grindSetting: settings.grindSetting,
       roast: "Medium",
       dose: Scaling.dose(servings: settings.servings),
       kettleFill: KettleFill(
@@ -27,7 +28,15 @@ public extension Recipe {
         temperature: Scaling.roomTemperature
       ),
       temperatureTarget: target,
-      preheat: Preheat(temperature: 96, throughBrewer: 200, intoCup: 100),
+      preheat: Preheat(
+        // 96 C is the most the kettle manages at this altitude before it
+        // bubbles, so it is a ceiling rather than a choice.
+        temperature: 96,
+        cups: settings.preheat.perCup * Double(settings.servings),
+        vessel: settings.preheat.vessel,
+        cone: settings.preheat.cone,
+        safety: settings.preheat.safety
+      ),
       steps: schedule(for: settings, water: water, hot: hot, target: target)
     )
   }

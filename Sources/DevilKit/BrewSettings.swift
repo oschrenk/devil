@@ -11,20 +11,35 @@ public struct BrewSettings: Equatable, Sendable {
   public var brewTemperature: Double
   /// What the last pour should reach once the cooler goes in.
   public var temperatureTarget: Double
-  /// The paper, which is what the grind setting travels with.
+  /// The paper. Its `defaultGrind` is where `grindSetting` starts.
   public var filter: Filter
+  /// The grinder setting in force.
+  ///
+  /// Recorded rather than used: nothing in the recipe is computed from it. It
+  /// is here so a brew can be written down and dialled in, which is why it is
+  /// free to move rather than pinned to the filter.
+  public var grindSetting: Double
+  /// How much water warms the cup, the vessel and the cone.
+  public var preheat: PreheatPlan
 
   public init(
     servings: Int = 1,
     brewTemperature: Double = 92,
     temperatureTarget: Double = 75,
-    filter: Filter = .harioV60Size02
+    filter: Filter = .harioV60Size02,
+    grindSetting: Double? = nil,
+    preheat: PreheatPlan = .standard
   ) {
     self.servings = servings
     self.brewTemperature = brewTemperature
     self.temperatureTarget = temperatureTarget
     self.filter = filter
+    self.grindSetting = grindSetting ?? filter.defaultGrind
+    self.preheat = preheat
   }
+
+  /// The range the K-Ultra dial covers for this brewer, in clicks of 0.1.
+  public static let grindRange = 6.0 ... 10.0
 
   public static let one = BrewSettings()
 

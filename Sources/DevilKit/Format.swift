@@ -21,4 +21,27 @@ public enum Format {
   public static func degrees(_ value: Double) -> String {
     "\(number(value)) °C"
   }
+
+  /// `1 : 16.6` with a vinculum over the six.
+  ///
+  /// The ratio is 50/3 exactly: the dose and the water are both linear in the
+  /// same term, so it repeats rather than rounds. Written as 16.7 it reads like
+  /// a measurement someone took. The overline says it is a third.
+  public static func ratio(_ value: Double) -> String {
+    let repeating = 50.0 / 3.0
+    if abs(value - repeating) < 0.000_001 {
+      // U+0305 COMBINING OVERLINE, which sits on the character before it.
+      return "1 : 16.6\u{0305}"
+    }
+    return "1 : \(number(value))"
+  }
+
+  /// `7.9`, `8.0`. Always one decimal, because that digit is the click on the
+  /// grinder and dropping it turns 8.0 into a different setting.
+  public static func grind(_ value: Double) -> String {
+    let rounded = (value * 10).rounded() / 10
+    let whole = Int(rounded)
+    let tenth = Int((abs(rounded) * 10).rounded()) % 10
+    return "\(whole).\(tenth)"
+  }
 }
