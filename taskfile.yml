@@ -14,8 +14,14 @@ tasks:
   generate:
     cmds:
       - xcodegen generate
+    # The app's sources are a glob in project.yml, so the generated project
+    # depends on which files exist, not only on project.yml. Watching the
+    # manifest alone meant a new source file was silently left out of the
+    # target and the build failed with `cannot find X in scope`.
     sources:
       - project.yml
+      - App/**/*.swift
+      - Sources/**/*.swift
     generates:
       - "{{.PROJECT}}/project.pbxproj"
     silent: true

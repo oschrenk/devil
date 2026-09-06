@@ -17,6 +17,14 @@ struct TimerView: View {
   @State private var clock = BrewClock()
   @State private var startSignal = BrewStartSignal()
   @State private var pausedBy = PauseSource.phone
+  @State private var trace = PourTrace()
+  /// What the chart draws, taken from `trace` once a second.
+  ///
+  /// The readings arrive ten times a second, but the line advances about two
+  /// screen points in that time, so nine of every ten redraws produce pixels
+  /// identical to the ones already there. Redrawing a few hundred marks for
+  /// that is the most expensive thing on the screen and the least visible.
+  @State private var drawnTrace = PourTrace()
 
   /// Reads the clock itself rather than borrowing the timeline's tick, which is
   /// what lets the toolbar live outside the per-second redraw.
@@ -65,7 +73,14 @@ struct TimerView: View {
           )
         }
         Spacer(minLength: 0)
-        Schedule(recipe: recipe, progress: progress)
+        // The schedule is what you read before starting. Once the water is
+        // going the step card already says what to do and when, so the space
+        // is worth more as the shape of the pour you are actually making.
+        if seconds > 0, !drawnTrace.samples.isEmpty {
+          PourGraph(recipe: recipe, trace: drawnTrace)
+        } else {
+          Schedule(recipe: recipe, progress: progress)
+        }
       }
       .padding(.horizontal)
       .animation(.snappy, value: progress.stepIndex)
@@ -76,6 +91,25 @@ struct TimerView: View {
         for command in startSignal.commands(elapsed: seconds) {
           scale.send(command)
         }
+      }
+      // Every reading is kept. A Pearl S reports about ten times a second, so
+      // a brew is roughly two thousand of them and thirty kilobytes, which is
+      // small enough that thinning would trade real pour data for nothing.
+      // The chart thins a copy; the flow rate and the log want all of it.
+      //
+      // Held readings are dropped rather than recorded flat. A pause is time
+      // the brew did not spend, and writing it into the trace would flatten
+      // the flow rate across a stretch where nothing was being poured.
+      .onChange(of: scale.weight) { _, grams in
+        guard let grams, seconds > 0, !clock.isHeld else { return }
+        let raw = Date.now.timeIntervalSince(brew.start)
+        trace.append(seconds: clock.elapsed(raw: raw), grams: grams)
+      }
+      // Handing the chart a snapshot on the tick rather than the live trace.
+      // Both are `Equatable`, so on the other nine frames SwiftUI compares
+      // equal and never enters the chart's body at all.
+      .onChange(of: Int(seconds.rounded(.down))) { _, _ in
+        drawnTrace = trace
       }
       // The other half of the sync. Pressing stop on the scale holds the
       // phone's clock, through the same control the Pause button uses.
@@ -298,52 +332,6 @@ private struct InstructionRow: View {
       Text(text)
     }
     .font(.title3)
-  }
-}
-
-/// What the scale reads, large enough to see from where you are pouring.
-/// What the scale reads, against what it ought to read.
-///
-/// The recipe knows the running total at every step, so the pair says when to
-/// stop pouring rather than leaving that arithmetic to whoever is holding the
-/// kettle. Green once the target is reached, which is the whole signal.
-///
-/// Readings arrive about ten times a second, measured on a Pearl S rather than
-/// taken from the documentation, which claims five. Fast enough that the last
-/// digit moves constantly while pouring, which is what the scale's own display
-/// does too.
-private struct WeightReadout: View {
-  let grams: Double?
-  let target: Double
-
-  private var reached: Bool {
-    (grams ?? 0) >= target
-  }
-
-  private var fraction: Double {
-    guard target > 0 else { return 0 }
-    return min(1, max(0, (grams ?? 0) / target))
-  }
-
-  var body: some View {
-    VStack(spacing: 6) {
-      Text(grams.map { Format.grams($0) } ?? "—")
-        .font(.system(size: 44, weight: .semibold, design: .rounded))
-        .monospacedDigit()
-        .contentTransition(.numericText())
-        .foregroundStyle(reached ? Color.green : .primary)
-      HStack(spacing: 8) {
-        ProgressView(value: fraction)
-          .tint(reached ? .green : .accentColor)
-        Text("of \(Format.grams(target))")
-          .font(.subheadline)
-          .foregroundStyle(.secondary)
-          .monospacedDigit()
-          .fixedSize()
-      }
-    }
-    .padding(.top, 8)
-    .animation(.snappy, value: reached)
   }
 }
 
