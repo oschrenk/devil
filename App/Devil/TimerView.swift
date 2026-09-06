@@ -13,6 +13,9 @@ struct TimerView: View {
   let settings: BrewSettings
   let brew: RunningBrew
   let scale: ScaleConnection
+  /// Set when you ask for the notes, so the screen behind can open them once
+  /// this one has gone.
+  @Binding var notesFor: BrewRecord?
 
   let store = BrewLogStore()
 
@@ -30,6 +33,9 @@ struct TimerView: View {
   @State private var drawnTrace = PourTrace()
   @State private var flow: Double?
   @State private var askingToSave = false
+  /// Read by the toolbar, which lives outside the timeline and so learns
+  /// nothing from the tick. A change here redraws it once, at the end.
+  @State private var hasFinished = false
 
   /// Reads the clock itself rather than borrowing the timeline's tick, which is
   /// what lets the toolbar live outside the per-second redraw.
@@ -67,13 +73,26 @@ struct TimerView: View {
     }
   }
 
-  private func save() {
+  /// Writes the brew and hands back what landed on disk.
+  ///
+  /// Read back rather than returned from memory, because the file is the
+  /// record and only the file knows whether a sidecar was written.
+  @discardableResult
+  private func save() -> BrewRecord? {
     let record = BrewRecord.of(
       settings: settings,
       at: BrewStamp(Date.now),
       finished: now.isComplete
     )
-    store.save(record, trace: trace)
+    guard let stem = store.save(record, trace: trace) else { return nil }
+    return store.brews().first { $0.id == stem }
+  }
+
+  /// The offer at the end. Right after drinking is the one moment you would
+  /// write down how it tasted, and the log fills only if the app says so.
+  private func addNotes() {
+    notesFor = save()
+    dismiss()
   }
 
   /// Long enough to be silence rather than a gap between messages. The scale
@@ -147,6 +166,13 @@ struct TimerView: View {
       // Held readings are dropped rather than recorded flat. A pause is time
       // the brew did not spend, and writing it into the trace would flatten
       // the flow rate across a stretch where nothing was being poured.
+      // The toolbar sits outside the timeline, so it has to be told.
+      // `initial` matters: a brew opened at a time past its end is complete
+      // from the first draw, so the value never changes and the offer would
+      // never appear.
+      .onChange(of: progress.isComplete, initial: true) { _, complete in
+        hasFinished = complete
+      }
       .onChange(of: scale.weightSamples) { _, _ in
         guard let grams = scale.weight, seconds > 0, !clock.isHeld else { return }
         let raw = Date.now.timeIntervalSince(brew.start)
@@ -213,10 +239,16 @@ struct TimerView: View {
         Button(clock.isHeld ? "Resume" : "Pause", action: toggleHold)
           .fontWeight(.semibold)
       }
+      if hasFinished {
+        ToolbarItem(placement: .topBarTrailing) {
+          Button("Add notes", action: addNotes)
+        }
+      }
       ToolbarItem(placement: .topBarTrailing) {
         // `Done`, and not red. Reaching the end of a recipe is the ordinary
         // way out, and a destructive button reads as abandoning the brew.
         Button("Done", action: finish)
+          .fontWeight(hasFinished ? .semibold : .regular)
       }
     }
     .confirmationDialog(
@@ -346,7 +378,8 @@ private struct HeldNote: View {
       recipe: .switchWaterAndTempManaged,
       settings: BrewSettings(),
       brew: RunningBrew(tappedAt: .now),
-      scale: ScaleConnection()
+      scale: ScaleConnection(),
+      notesFor: .constant(nil)
     )
   }
 }

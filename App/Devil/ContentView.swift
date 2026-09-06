@@ -5,6 +5,8 @@ struct ContentView: View {
   @State private var settings = BrewSettings.one
   /// Non-nil while a brew is running.
   @State private var running: RunningBrew?
+  /// The brew whose notes to open, set by the timer as it closes.
+  @State private var notesFor: BrewRecord?
   @State private var scale = ScaleConnection()
   @State private var picking = false
 
@@ -166,9 +168,27 @@ struct ContentView: View {
     // after five minutes when idle and disconnected, and grinding and
     // preheating take longer than that. A connected app keeps it awake.
     .task { scale.begin() }
+    // A sheet rather than a push, because the timer it follows is a cover and
+    // there is no stack underneath to push onto.
+    .sheet(item: $notesFor) { brew in
+      NavigationStack {
+        BrewDetailView(store: BrewLogStore(), brew: brew)
+          .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+              Button("Close") { notesFor = nil }
+            }
+          }
+      }
+    }
     .fullScreenCover(item: $running) { brew in
       NavigationStack {
-        TimerView(recipe: recipe, settings: settings, brew: brew, scale: scale)
+        TimerView(
+          recipe: recipe,
+          settings: settings,
+          brew: brew,
+          scale: scale,
+          notesFor: $notesFor
+        )
       }
     }
   }

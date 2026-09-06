@@ -3,7 +3,12 @@
 /// The numbers are stored rather than derived from `BrewSettings` at read
 /// time. A record is a fact about a morning that has already happened, and
 /// re-deriving it would let a change to `Scaling` rewrite last week's brews.
-public struct BrewRecord: Equatable, Sendable {
+public struct BrewRecord: Equatable, Sendable, Identifiable {
+  /// The stem of both its files, which is unique to the minute it started.
+  public var id: String {
+    stamp.stem
+  }
+
   public var stamp: BrewStamp
   public var recipe: String
   public var servings: Int
