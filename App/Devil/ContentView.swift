@@ -78,8 +78,6 @@ struct ContentView: View {
         }
 
         Section {
-          LabelledValue(label: "Boil", value: recipe.tapToBoil.millilitres)
-            .fontWeight(.semibold)
           Stepper(value: $settings.preheat.cone, in: 0 ... 400, step: PreheatPlan.step) {
             LabelledValue(label: "Cone", value: recipe.preheat.cone.millilitres)
           }
@@ -98,15 +96,7 @@ struct ContentView: View {
         } header: {
           Text("Preheat")
         } footer: {
-          Text(boilBreakdown)
-        }
-
-        Section("Kettle") {
-          LabelledValue(label: "Tap", value: recipe.kettleFill.tap.grams)
-          LabelledValue(label: "Beaker A", value: recipe.kettleFill.demineralized.grams)
-            .accessibilityLabel("Beaker A, demineralized water for the kettle")
-          LabelledValue(label: "Beaker B", value: recipe.cooler.amount.grams)
-            .accessibilityLabel("Beaker B, cold demineralized water")
+          Text("Cup is per person. The rest are the same however many are drinking.")
         }
 
         Section("Pours") {
@@ -131,6 +121,24 @@ struct ContentView: View {
           if scale.state.isConnected {
             Button("Tare") { scale.send(.tare) }
           }
+        }
+
+        Section {
+          // What to put in the kettle, and what to keep out of it. The first
+          // three go in and get boiled. The last waits in its own beaker.
+          LabelledValue(label: "Kettle", value: recipe.tapToBoil.millilitres)
+            .fontWeight(.semibold)
+          LabelledValue(label: "Tap", value: recipe.kettleFill.tap.grams)
+          LabelledValue(label: "Demineralised", value: recipe.kettleFill.demineralized.grams)
+            .accessibilityLabel("Demineralised water, into the kettle")
+          // Named for the step that uses it, so the setup screen and the
+          // timer call the same water by the same name.
+          LabelledValue(label: "Cold add", value: recipe.cooler.amount.grams)
+            .accessibilityLabel("Cold add, demineralised water held back")
+        } header: {
+          Text("Water")
+        } footer: {
+          Text(boilBreakdown)
         }
 
         Section {
