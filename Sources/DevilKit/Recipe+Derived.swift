@@ -13,6 +13,15 @@ public extension Recipe {
     steps.map(\.start).max() ?? BrewTime(seconds: 0)
   }
 
+  /// When the last drips land, or `nil` at a size nobody has timed.
+  ///
+  /// Not the same as `totalTime`, which is only where the schedule stops. With
+  /// no observed finish the schedule stops at the drain, and a screen should
+  /// show that there is no answer rather than showing 2:30 as if there were.
+  var finish: BrewTime? {
+    steps.first { $0.actions.contains(.finish) }?.start
+  }
+
   /// How long a step lasts, in seconds, or `nil` for the last one, which marks
   /// the end of the brew rather than a wait.
   func duration(of step: Step) -> Int? {

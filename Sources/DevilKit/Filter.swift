@@ -4,7 +4,7 @@
 /// flows faster than Hario's, so it takes a finer setting to hold the same
 /// contact time. Storing the setting on the recipe would make it look like one
 /// number, and it is two.
-public struct Filter: Equatable, Sendable {
+public struct Filter: Equatable, Hashable, Sendable {
   public var name: String
   /// On the 1Zpresso K-Ultra. Lower is finer.
   public var grindSetting: String
