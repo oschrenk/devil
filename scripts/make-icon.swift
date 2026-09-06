@@ -29,12 +29,13 @@ struct Random {
 
 /// Warm to cool, the way a bloom looks when the crema breaks up.
 let palette: [(Double, Double, Double)] = [
-  (0.99, 0.45, 0.10),
-  (0.96, 0.20, 0.42),
-  (0.72, 0.18, 0.78),
-  (0.36, 0.24, 0.90),
-  (0.10, 0.70, 0.84),
-  (0.99, 0.78, 0.22),
+  (1.00, 0.52, 0.14),
+  (1.00, 0.28, 0.54),
+  (0.88, 0.38, 0.96),
+  (0.46, 0.48, 1.00),
+  (0.18, 0.86, 0.96),
+  (0.36, 0.96, 0.62),
+  (1.00, 0.84, 0.28),
 ]
 
 let space = CGColorSpaceCreateDeviceRGB()
@@ -51,8 +52,9 @@ guard let context = CGContext(
   exit(1)
 }
 
-// A dark ground, so every blob laid over it reads as light rather than paint.
-context.setFillColor(CGColor(red: 0.06, green: 0.03, blue: 0.12, alpha: 1))
+// A ground dark enough that every blob laid over it reads as light rather
+// than paint, but not so dark that the corners go to black on a phone.
+context.setFillColor(CGColor(red: 0.24, green: 0.11, blue: 0.40, alpha: 1))
 context.fill(CGRect(x: 0, y: 0, width: side, height: side))
 
 // Blobs on a widening spiral. Screen blending means overlaps brighten and
@@ -66,14 +68,14 @@ let count = 22
 for index in 0 ..< count {
   let progress = Double(index) / Double(count - 1)
   let angle = progress * turns * 2 * Double.pi
-  let arm = (0.16 + progress * 0.30) * Double(side)
+  let arm = (0.14 + progress * 0.34) * Double(side)
   let jitter = random.next(0.86, 1.14)
   let x = centre + cos(angle) * arm * jitter
   let y = centre + sin(angle) * arm * jitter
-  let radius = Double(side) * random.next(0.10, 0.26)
+  let radius = Double(side) * random.next(0.16, 0.34)
 
   let (red, green, blue) = palette[index % palette.count]
-  let inner = CGColor(red: red, green: green, blue: blue, alpha: random.next(0.50, 0.78))
+  let inner = CGColor(red: red, green: green, blue: blue, alpha: random.next(0.52, 0.76))
   let outer = CGColor(red: red, green: green, blue: blue, alpha: 0)
   guard let gradient = CGGradient(
     colorsSpace: space,
@@ -121,6 +123,14 @@ let vibrance = CIFilter(name: "CIVibrance")!
 vibrance.setValue(image, forKey: kCIInputImageKey)
 vibrance.setValue(0.45, forKey: "inputAmount")
 image = vibrance.outputImage!
+
+// Saturation rather than exposure. Lifting exposure brightens the highlights
+// too and the whole icon goes pastel; this keeps the colour instead.
+let controls = CIFilter(name: "CIColorControls")!
+controls.setValue(image, forKey: kCIInputImageKey)
+controls.setValue(1.14, forKey: kCIInputSaturationKey)
+controls.setValue(0.02, forKey: kCIInputBrightnessKey)
+image = controls.outputImage!
 
 let frame = CGRect(x: 0, y: 0, width: side, height: side)
 let ciContext = CIContext(options: [.workingColorSpace: space])
