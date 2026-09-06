@@ -5,6 +5,8 @@ struct ContentView: View {
   @State private var settings = BrewSettings.one
   /// Non-nil while a brew is running.
   @State private var running: RunningBrew?
+  @State private var scale = ScaleConnection()
+  @State private var picking = false
 
   private var recipe: Recipe {
     .switchWaterAndTempManaged(for: settings)
@@ -100,6 +102,18 @@ struct ContentView: View {
           LabelledValue(label: "Finish", value: recipe.finish?.formatted ?? "not timed")
         }
 
+        // Above `Start brewing` rather than at the top, because the scale is
+        // optional. Left alone this is one quiet row and nothing else changes.
+        Section("Scale") {
+          Button { picking = true } label: {
+            ScaleRow(state: scale.state)
+          }
+          .tint(.primary)
+          if scale.state.isConnected {
+            Button("Tare") { scale.send(.tare) }
+          }
+        }
+
         Section {
           Button {
             // Ignore a second press while one is already running. A stray tap
@@ -122,6 +136,13 @@ struct ContentView: View {
     // it should not sit on a navigation stack where a stray back-swipe ends it,
     // and a push destination inside a Form can deactivate on its own, which it
     // did, closing the timer part-way through a brew.
+    .sheet(isPresented: $picking) {
+      ScalePicker(scale: scale)
+    }
+    // Connect when the app opens, not when a brew starts. The scale sleeps
+    // after five minutes when idle and disconnected, and grinding and
+    // preheating take longer than that. A connected app keeps it awake.
+    .task { scale.begin() }
     .fullScreenCover(item: $running) { brew in
       NavigationStack {
         TimerView(recipe: recipe, brew: brew)
@@ -145,6 +166,42 @@ struct RunningBrew: Identifiable, Equatable {
 
   var id: Date {
     tappedAt
+  }
+}
+
+/// The scale's state, in the words that name its remedy.
+private struct ScaleRow: View {
+  let state: ScaleState
+
+  var body: some View {
+    HStack {
+      Text(title)
+      Spacer()
+      if let detail {
+        Text(detail).foregroundStyle(.secondary)
+      }
+      Image(systemName: "chevron.right")
+        .font(.footnote.weight(.semibold))
+        .foregroundStyle(.tertiary)
+    }
+  }
+
+  private var title: String {
+    switch state {
+    case .noneChosen: "Connect a scale"
+    case .bluetoothOff: "Bluetooth is off"
+    case .unauthorised: "Devil cannot use Bluetooth"
+    case let .searching(name): name
+    case let .connected(name, _): name
+    }
+  }
+
+  private var detail: String? {
+    switch state {
+    case .noneChosen, .bluetoothOff, .unauthorised: nil
+    case .searching: "not found"
+    case let .connected(_, battery): battery.map { "\($0) %" } ?? "connected"
+    }
   }
 }
 

@@ -51,6 +51,9 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_CFBundleDisplayName: Devil
+        # The only explanation anyone reads, so it says why, not what.
+        INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: >-
+          Devil connects to your Acaia scale to time the brew and weigh each pour.
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
