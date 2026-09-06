@@ -15,6 +15,7 @@ struct TimerView: View {
 
   @Environment(\.dismiss) private var dismiss
   @State private var clock = BrewClock()
+  @State private var startSignal = BrewStartSignal()
 
   /// Reads the clock itself rather than borrowing the timeline's tick, which is
   /// what lets the toolbar live outside the per-second redraw.
@@ -54,6 +55,13 @@ struct TimerView: View {
       .padding(.horizontal)
       .animation(.snappy, value: progress.stepIndex)
       .animation(.snappy, value: clock.isHeld)
+      // Both clocks then begin on the same instant, rather than moments apart
+      // because two hands pressed two buttons.
+      .onChange(of: Int(seconds.rounded(.down)), initial: true) { _, _ in
+        for command in startSignal.commands(elapsed: seconds) {
+          scale.send(command)
+        }
+      }
     }
     .navigationTitle("Brewing")
     .navigationBarTitleDisplayMode(.inline)
