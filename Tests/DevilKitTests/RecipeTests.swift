@@ -11,12 +11,27 @@ struct RecipeTests {
   func settings() {
     #expect(recipe.brewer == "Hario Switch")
     #expect(recipe.grinder == "1Zpresso K-Ultra")
-    #expect(recipe.grindSetting == "7.8")
+    #expect(recipe.filter == .harioV60Size02)
     #expect(recipe.roast == "Medium")
     #expect(recipe.dose == 15)
     #expect(recipe.brewTemperature == 92)
     #expect(recipe.kettleTemperatureAtLastPour == 85.5)
     #expect(recipe.temperatureTarget == 75)
+  }
+
+  /// The grind is a property of the paper, not of the recipe. Abaca flows
+  /// faster than Hario's and needs a finer setting to hold the contact time.
+  @Test("The grind follows the filter, 7.9 with Hario and 7.5 with Abaca")
+  func grindFollowsTheFilter() {
+    #expect(recipe.grindSetting == "7.9")
+
+    var abaca = recipe
+    abaca.filter = .abaca
+    #expect(abaca.grindSetting == "7.5")
+
+    // Swapping paper changes nothing about the water.
+    #expect(abaca.delivered == recipe.delivered)
+    #expect(abaca.waterThroughBed == recipe.waterThroughBed)
   }
 
   @Test("The preheat is 300 g, split 200 through the brewer and 100 into the cup")

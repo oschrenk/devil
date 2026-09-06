@@ -59,7 +59,7 @@ public struct Recipe: Equatable, Sendable {
   public var name: String
   public var brewer: String
   public var grinder: String
-  public var grindSetting: String
+  public var filter: Filter
   public var roast: String
   public var dose: Double
   public var kettleFill: KettleFill
@@ -80,7 +80,7 @@ public struct Recipe: Equatable, Sendable {
     name: String,
     brewer: String,
     grinder: String,
-    grindSetting: String,
+    filter: Filter,
     roast: String,
     dose: Double,
     kettleFill: KettleFill,
@@ -94,7 +94,7 @@ public struct Recipe: Equatable, Sendable {
     self.name = name
     self.brewer = brewer
     self.grinder = grinder
-    self.grindSetting = grindSetting
+    self.filter = filter
     self.roast = roast
     self.dose = dose
     self.kettleFill = kettleFill
@@ -104,5 +104,12 @@ public struct Recipe: Equatable, Sendable {
     self.temperatureTarget = temperatureTarget
     self.preheat = preheat
     self.steps = steps
+  }
+}
+
+public extension Recipe {
+  /// The setting the current filter calls for.
+  var grindSetting: String {
+    filter.grindSetting
   }
 }

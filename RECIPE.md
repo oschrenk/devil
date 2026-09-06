@@ -16,7 +16,7 @@ A complex Switch recipe that does **three things at once**:
 - **Brewer**: Hario Switch
 - **Server**: Hario 300 ml Beaker Server
 - **Grinder**: 1Zpresso K-Ultra
-- **Grind setting**: 7.8
+- **Grind setting**: 7.9 with the Hario filter, 7.5 with Abaca
 - **Dose**: 15 g
 - **Total water through bed**: 250 g
 - **Brew ratio**: 1 : 16.7
@@ -31,7 +31,7 @@ A complex Switch recipe that does **three things at once**:
 ### Gear
 
 - Hario Switch w/ Hario Neo Dripper
-- Hario Hario V60 Paper filter, Size 02
+- Hario V60 Paper filter, Size 02, or Abaca at a finer grind
 - Codale Negotiator
 - Hario 300 ml Beaker Server
 - 1Zpresso K-Ultra grinder
@@ -85,7 +85,7 @@ To skip the kettle refill between preheat and brew:
 
 #### 1. Prep
 
-1. Grind 15 g coffee at K-Ultra **7.8**.
+1. Grind 15 g coffee at K-Ultra **7.9** for the Hario filter, or **7.5** for Abaca.
 2. Place paper filter in Switch; sit Switch on top of Hario server.
 3. Pre-measure into beakers:
    - **Beaker A**: 113 g demineralized water

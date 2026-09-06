@@ -7,11 +7,9 @@ public extension Recipe {
     name: "Hario Switch, Water and Temp Managed",
     brewer: "Hario Switch",
     grinder: "1Zpresso K-Ultra",
-    // Unresolved. The Settings block says 7.8, Prep step 1 said 8.0, and the
-    // spreadsheet the recipe was derived from says 8.1. Nothing decides between
-    // them, so the Settings block wins and this stays the one value in the file
-    // that rests on no evidence.
-    grindSetting: "7.8",
+    // The grind travels with the filter, so it is on Filter rather than here.
+    // 7.9 with Hario paper, 7.5 with Abaca.
+    filter: .harioV60Size02,
     roast: "Medium",
     dose: 15,
     kettleFill: KettleFill(
