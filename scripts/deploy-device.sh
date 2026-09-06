@@ -45,6 +45,11 @@ TEAM_ID="$(sed -n 's/^[[:space:]]*DEVELOPMENT_TEAM[[:space:]]*=[[:space:]]*//p' 
 [ -n "$TEAM_ID" ] || fail "DEVELOPMENT_TEAM is empty in Local.xcconfig. Set it to your Apple Team ID."
 
 if ! security find-identity -v -p codesigning | grep -q "Apple Development"; then
+  # A certificate with no valid chain reports zero identities while looking
+  # present in Keychain Access, so say which of the two is missing.
+  if security find-identity -p codesigning | grep -q "Apple Development"; then
+    fail "The Apple Development certificate has no valid chain. The WWDR G3 intermediate is probably missing: fetch https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer and add it to the login keychain."
+  fi
   fail "No Apple Development identity in the keychain. Do the one-time Xcode setup at the top of this script."
 fi
 
@@ -76,6 +81,17 @@ fi
 
 step "Regenerating project"
 xcodegen generate
+
+# An Xcode can list an iOS SDK and still be unable to build for a device,
+# because the platform itself was never downloaded. `-showsdks` and
+# `-showdestinations` report the same for both, so probe the real thing: this
+# resolves a device destination and exits 64 when the platform is missing.
+# Without it the failure arrives minutes into the archive as
+# "iOS <version> is not installed", which does not name the cause.
+step "Checking the toolchain can build for a device"
+xcodebuild -project "$PROJECT" -scheme "$SCHEME" \
+  -destination 'generic/platform=iOS' -showBuildSettings >/dev/null 2>&1 \
+  || fail "The selected Xcode cannot build for iOS. 'xcode-select -p' says $(xcode-select -p). Install the iOS platform in that Xcode, or select one that has it."
 
 rm -rf "$BUILD_DIR"
 

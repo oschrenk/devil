@@ -125,12 +125,12 @@ Notarization applies to Mac distribution only.
 The script checks the config file, the team ID, the identity and the connected device before it starts.
 An archive takes minutes, and you can know every one of those failures up front.
 
-**Unverified.**
-Nobody has run the signing and install path yet.
-It follows Apple's documented flow, and the checks in front of it work.
-No certificate and no phone existed at the time.
-Expect to fix something the first time.
-`DEVIL-01` covers that.
+**Partly verified.**
+The archive signs and Apple issues the profile.
+`codesign` reports a full chain, `Apple Development` to `Apple Worldwide Developer Relations` to `Apple Root CA`.
+The entitlements show the team prefix.
+Nobody has run the `devicectl` install, because no phone has reached the machine yet.
+`DEVIL-01` covers that last step.
 
 ## No `nix build`
 
@@ -159,6 +159,60 @@ One value in one file cannot drift and cannot fail quietly.
 
 You selected the Command Line Tools instead of Xcode.
 See the check under Requirements.
+
+### `0 valid identities found`, with the Certificate Right There
+
+`security find-identity -v -p codesigning` counts a certificate only when its whole chain resolves.
+Drop the `-v` to see it without that test:
+
+```sh
+security find-identity -p codesigning
+```
+
+One identity there and none under `Valid identities only` points at the chain, not at the certificate.
+The usual cause is a missing intermediate.
+`Apple Worldwide Developer Relations Certification Authority` `OU=G3` issues an `Apple Development` certificate.
+A keychain often holds only the older intermediate, which expired in February 2023.
+Check the intermediates you have:
+
+```sh
+security find-certificate -a -c "Worldwide Developer Relations" -p |   openssl x509 -noout -subject -dates
+```
+
+Fetch the right one and add it:
+
+```sh
+curl -fsSLO https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer
+security add-certificates -k ~/Library/Keychains/login.keychain-db AppleWWDRCAG3.cer
+```
+
+Nothing else changes.
+The certificate and its private key were right all along.
+
+### `iOS <version> Is Not Installed`
+
+`xcode-select` points at an Xcode whose iOS platform never finished downloading.
+Opening a different Xcode moves that selection without asking, so this arrives out of nowhere.
+
+```sh
+xcode-select -p
+```
+
+Point it at the Xcode that has the platform:
+
+```sh
+sudo xcode-select -s /Applications/Xcode-beta.app/Contents/Developer
+```
+
+Both Xcodes report the same from `xcodebuild -showsdks` and `-showdestinations`, so neither tells you which is which.
+What separates them is resolving a device destination:
+
+```sh
+xcodebuild -project Devil.xcodeproj -scheme Devil   -destination 'generic/platform=iOS' -showBuildSettings
+```
+
+That exits 64 on the Xcode that cannot, and 0 on the one that can.
+`scripts/deploy-device.sh` runs it before the archive for that reason.
 
 ### `swiftc` Rejects the SDK
 
