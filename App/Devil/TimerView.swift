@@ -58,6 +58,9 @@ struct TimerView: View {
         } else {
           CurrentStep(recipe: recipe, progress: progress)
         }
+        if scale.state.isConnected {
+          WeightReadout(grams: scale.weight)
+        }
         Spacer(minLength: 0)
         Schedule(recipe: recipe, progress: progress)
       }
@@ -292,6 +295,23 @@ private struct InstructionRow: View {
       Text(text)
     }
     .font(.title3)
+  }
+}
+
+/// What the scale reads, large enough to see from where you are pouring.
+/// Readings arrive about ten times a second, measured on a Pearl S rather than
+/// taken from the documentation, which claims five. Fast enough that the last
+/// digit moves constantly while pouring, which is what the scale's own display
+/// does too.
+private struct WeightReadout: View {
+  let grams: Double?
+
+  var body: some View {
+    Text(grams.map { Format.grams($0) } ?? "—")
+      .font(.system(size: 44, weight: .semibold, design: .rounded))
+      .monospacedDigit()
+      .contentTransition(.numericText())
+      .padding(.top, 8)
   }
 }
 
