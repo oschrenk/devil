@@ -5,6 +5,7 @@
 /// that refuses a half-remembered note is a log nobody fills in.
 public struct BrewNotes: Equatable, Sendable {
   public var beans: String
+  public var waterRecipe: String
   public var totalDissolvedSolids: String
   public var concentration: String
   public var aroma: String
@@ -17,10 +18,12 @@ public struct BrewNotes: Equatable, Sendable {
   public var afterfeel: String
   public var balance: String
 
-  /// `beans` starts as the bare tag, so the vault's own convention survives a
-  /// round trip instead of arriving as an empty line to be remembered.
+  /// `beans` and `waterRecipe` start as the bare tag, so the vault's own
+  /// convention survives a round trip instead of arriving as an empty line to
+  /// be remembered.
   public init(
     beans: String = "#beans/",
+    waterRecipe: String = "#water/",
     totalDissolvedSolids: String = "",
     concentration: String = "",
     aroma: String = "",
@@ -34,6 +37,7 @@ public struct BrewNotes: Equatable, Sendable {
     balance: String = ""
   ) {
     self.beans = beans
+    self.waterRecipe = waterRecipe
     self.totalDissolvedSolids = totalDissolvedSolids
     self.concentration = concentration
     self.aroma = aroma
@@ -56,6 +60,7 @@ public struct BrewNotes: Equatable, Sendable {
   static var fields: [(label: String, key: WritableKeyPath<BrewNotes, String>)] {
     [
       ("Beans", \.beans),
+      ("Water Recipe", \.waterRecipe),
       ("Total Dissolved Solids", \.totalDissolvedSolids),
       ("Concentration", \.concentration),
       ("Aroma", \.aroma),

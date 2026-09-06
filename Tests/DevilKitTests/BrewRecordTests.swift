@@ -28,7 +28,7 @@ struct BrewRecordTests {
   /// A brew written this morning has nothing typed into it yet.
   @Test("A record with nothing typed survives the trip")
   func roundTripBlank() {
-    let original = record(notes: BrewNotes(beans: ""))
+    let original = record(notes: BrewNotes(beans: "", waterRecipe: ""))
 
     #expect(BrewRecord.parse(markdown: original.markdown) == original)
   }
@@ -38,6 +38,7 @@ struct BrewRecordTests {
   func roundTripFilled() {
     let notes = BrewNotes(
       beans: "#beans/ethiopia-guji",
+      waterRecipe: "#water/third-wave-half",
       totalDissolvedSolids: "1.38",
       concentration: "21.4",
       aroma: "jasmine: loud at first",
@@ -91,7 +92,17 @@ struct BrewRecordTests {
     #expect(lines.contains("- Weight: 15 g"))
     #expect(lines.contains("- Recipe: #recipe/hario-switch"))
     #expect(lines.contains("- Grinder: 1Zpresso K-Ultra"))
-    #expect(lines.contains("- Water Recipe: 107 g tap, 18 g demineralized"))
+  }
+
+  /// The split stays in frontmatter, where it is a measurement rather than a
+  /// claim about which water recipe you used.
+  @Test("The body leaves the water recipe for you to type")
+  func waterRecipeIsTyped() {
+    let lines = record().markdown.split(separator: "\n").map(String.init)
+
+    #expect(lines.contains("- Water Recipe: #water/"))
+    #expect(lines.contains("beakerA: 107"))
+    #expect(lines.contains("beakerB: 18"))
   }
 
   @Test("The body lists the vault's nineteen fields in its own order")

@@ -31,10 +31,13 @@ public extension BrewRecord {
     lines.append("# \u{2615}\u{FE0F} \(stamp.readable)")
     lines.append("")
 
-    let waterRecipe = "\(Format.grams(beakerA)) tap, \(Format.grams(beakerB)) demineralized"
     lines.append("- Beans: \(notes.beans)")
     lines.append("- Recipe: \(Self.recipeTag)")
-    lines.append("- Water Recipe: \(waterRecipe)")
+    // Typed, not filled in. The tap and demineralized split is temperature
+    // management rather than a water recipe, and `#water/` names a mineral
+    // profile this app knows nothing about. The split stays in frontmatter as
+    // `beakerA` and `beakerB`, where it is a measurement and not a claim.
+    lines.append("- Water Recipe: \(notes.waterRecipe)")
     lines.append("- Grinder: \(grinder)")
     lines.append("- Grind Size: \(Format.grind(grind))")
     lines.append("- Total Dissolved Solids: \(notes.totalDissolvedSolids)")
