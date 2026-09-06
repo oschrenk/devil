@@ -40,9 +40,14 @@ struct ContentView: View {
             Text("Hario").tag(Filter.harioV60Size02)
             Text("Abaca").tag(Filter.abaca)
           }
+          Picker("Grinder", selection: $settings.grinder) {
+            ForEach(Grinder.all, id: \.self) { grinder in
+              Text(grinder.name).tag(grinder)
+            }
+          }
           Stepper(
             value: $settings.grindSetting,
-            in: BrewSettings.grindRange,
+            in: settings.grindRange,
             step: 0.1
           ) {
             LabelledValue(label: "Grind", value: Format.grind(recipe.grindSetting))
@@ -52,7 +57,12 @@ struct ContentView: View {
         // Dialling in from there is the point of the stepper, so the snap only
         // happens on the change and never undoes a later edit.
         .onChange(of: settings.filter) { _, filter in
-          settings.grindSetting = filter.defaultGrind
+          settings.grindSetting = settings.grinder.clamped(filter.defaultGrind)
+        }
+        // The stepper's bounds are the new dial's the moment this changes, so
+        // a setting the new grinder cannot reach has to come with it.
+        .onChange(of: settings.grinder) { _, grinder in
+          settings.use(grinder)
         }
 
         Section("Temperature") {

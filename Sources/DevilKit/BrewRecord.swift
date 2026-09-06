@@ -70,6 +70,7 @@ public struct BrewRecord: Equatable, Sendable {
       dose: Scaling.dose(servings: settings.servings),
       water: water,
       grind: settings.grindSetting,
+      grinder: settings.grinder.name,
       filter: settings.filter.name,
       brewTemperature: settings.brewTemperature,
       temperatureTarget: settings.temperatureTarget,

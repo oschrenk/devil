@@ -13,6 +13,8 @@ public struct BrewSettings: Equatable, Sendable {
   public var temperatureTarget: Double
   /// The paper. Its `defaultGrind` is where `grindSetting` starts.
   public var filter: Filter
+  /// Which burrs `grindSetting` counts on.
+  public var grinder: Grinder
   /// The grinder setting in force.
   ///
   /// Recorded rather than used: nothing in the recipe is computed from it. It
@@ -27,6 +29,7 @@ public struct BrewSettings: Equatable, Sendable {
     brewTemperature: Double = 92,
     temperatureTarget: Double = 75,
     filter: Filter = .harioV60Size02,
+    grinder: Grinder = .oneZpressoKUltra,
     grindSetting: Double? = nil,
     preheat: PreheatPlan = .standard
   ) {
@@ -34,12 +37,24 @@ public struct BrewSettings: Equatable, Sendable {
     self.brewTemperature = brewTemperature
     self.temperatureTarget = temperatureTarget
     self.filter = filter
-    self.grindSetting = grindSetting ?? filter.defaultGrind
+    self.grinder = grinder
+    self.grindSetting = grinder.clamped(grindSetting ?? filter.defaultGrind)
     self.preheat = preheat
   }
 
-  /// The range the K-Ultra dial covers for this brewer, in clicks of 0.1.
-  public static let grindRange = 6.0 ... 10.0
+  /// What the dial in front of you accepts, in clicks of 0.1.
+  public var grindRange: ClosedRange<Double> {
+    grinder.grindRange
+  }
+
+  /// Changes the burrs and brings the setting with them.
+  ///
+  /// A number carried across unchanged would sit outside the new dial, and a
+  /// stepper bounded by that dial could never get back to it.
+  public mutating func use(_ grinder: Grinder) {
+    self.grinder = grinder
+    grindSetting = grinder.clamped(grindSetting)
+  }
 
   public static let one = BrewSettings()
 
