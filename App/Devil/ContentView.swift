@@ -2,7 +2,7 @@ import DevilKit
 import SwiftUI
 
 struct ContentView: View {
-  @State private var gear = Gear()
+  @State private var defaults = BrewDefaults()
   @State private var settings = BrewSettings.one
   /// Non-nil while a brew is running.
   @State private var running: RunningBrew?
@@ -37,7 +37,7 @@ struct ContentView: View {
   var body: some View {
     NavigationStack {
       Form {
-        Section("Brewing for") {
+        Section("Brewing") {
           Stepper(value: $settings.servings, in: BrewSettings.servingsRange) {
             LabelledValue(
               label: settings.servings == 1 ? "1 person" : "\(settings.servings) people",
@@ -68,13 +68,6 @@ struct ContentView: View {
             settings.grindMicrons = settings.grinder.stepped(settings.grindMicrons, by: -1)
           }
         }
-        // The size is the setting, so changing burrs keeps the coffee and
-        // moves the dial. Whether the new grinder can reach it is another
-        // matter, and the row says so when it cannot.
-        .onChange(of: settings.grinder) { _, grinder in
-          gear.grinder = grinder
-        }
-
         Section("Temperature") {
           Stepper(value: $settings.brewTemperature, in: 85 ... 96, step: 1) {
             LabelledValue(label: "Kettle", value: recipe.brewTemperature.degrees)
@@ -158,9 +151,9 @@ struct ContentView: View {
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) {
           NavigationLink {
-            GearView(gear: gear)
+            DefaultsView(defaults: defaults)
           } label: {
-            Label("Gear", systemImage: "gearshape")
+            Label("Defaults", systemImage: "gearshape")
           }
         }
       }
@@ -190,16 +183,16 @@ struct ContentView: View {
     // Connect when the app opens, not when a brew starts. The scale sleeps
     // after five minutes when idle and disconnected, and grinding and
     // preheating take longer than that. A connected app keeps it awake.
-    // The gear screen sets what a brew starts from, so a change there shows
-    // on the next brew rather than the next launch.
-    .onChange(of: gear.microns, initial: true) { _, microns in
-      settings.grindMicrons = microns
-    }
-    .onChange(of: gear.filter, initial: true) { _, filter in
-      settings.filter = filter
-    }
-    .onChange(of: gear.grinder, initial: true) { _, grinder in
-      settings.grinder = grinder
+    // The settings screen decides what a brew opens with, and one counter
+    // covers every value on it. Watching nine properties one at a time is
+    // nine chances to forget the tenth.
+    //
+    // A change here replaces what is on screen, including anything nudged for
+    // today. Setting a default is a deliberate act, so the newer number wins.
+    .onChange(of: defaults.revision, initial: true) { _, _ in
+      let servings = settings.servings
+      settings = defaults.settings()
+      settings.servings = servings
     }
     .task { scale.begin() }
     // A sheet rather than a push, because the timer it follows is a cover and
@@ -327,7 +320,7 @@ private struct StepRow: View {
   }
 }
 
-private extension Double {
+extension Double {
   var grams: String {
     Format.grams(self)
   }
