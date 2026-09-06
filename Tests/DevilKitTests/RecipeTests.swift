@@ -15,7 +15,8 @@ struct RecipeTests {
     #expect(recipe.roast == "Medium")
     #expect(recipe.dose == 15)
     #expect(recipe.brewTemperature == 92)
-    #expect(recipe.bedTemperatureTarget == 75)
+    #expect(recipe.kettleTemperatureAtLastPour == 85.5)
+    #expect(recipe.temperatureTarget == 75)
   }
 
   @Test("The preheat is 300 g, split 200 through the brewer and 100 into the cup")
@@ -26,17 +27,16 @@ struct RecipeTests {
     #expect(recipe.preheat.total == 300)
   }
 
-  @Test("The kettle holds 150 g tap and 113 g demineralized, so 263 g")
+  @Test("The kettle holds 125 g tap and 113 g demineralized, so 238 g")
   func kettleFill() {
     #expect(recipe.kettleFill.tap == 125)
-    #expect(recipe.kettleFill.tapBuffer == 25)
     #expect(recipe.kettleFill.demineralized == 113)
-    #expect(recipe.kettleFill.total == 263)
+    #expect(recipe.kettleFill.total == 238)
   }
 
-  @Test("Beaker B holds 13 g of demineralized water at room temperature")
+  @Test("Beaker B holds 12 g of demineralized water at room temperature")
   func cooler() {
-    #expect(recipe.cooler.amount == 13)
+    #expect(recipe.cooler.amount == 12)
     #expect(recipe.cooler.temperature == 20)
   }
 
@@ -55,55 +55,50 @@ struct RecipeTests {
     #expect(abs(recipe.brewRatio - 16.7) < 0.05)
   }
 
-  @Test("The kettle keeps 26 g back, which is close to the 25 g buffer")
-  func leftInKettle() {
-    #expect(abs(recipe.leftInKettle.total - 26) < 0.5)
+  /// The whole recipe turns on this. Empty the kettle and the coffee receives
+  /// everything that went in, so the blend is exactly what was measured out.
+  /// Leave water behind and it carries demineralized water off with it.
+  @Test("The last pour empties the kettle")
+  func kettleEmpties() {
+    #expect(abs(recipe.leftInKettle.total) < 0.001)
   }
 
-  /// `RECIPE.md` claimed 126 g demineralized against 124 g tap, and read the
-  /// leftover in the kettle as pure tap. The kettle is one blend, so the
-  /// leftover is blended too, and the coffee gets 137 g tap against 113 g.
-  @Test("The coffee receives 137 g tap and 113 g demineralized, near 55:45")
+  @Test("The coffee receives 125 g tap and 125 g demineralized, exactly 50:50")
   func deliveredBlend() {
     let delivered = recipe.delivered
 
     #expect(abs(delivered.total - 250) < 0.001)
-    #expect(abs(delivered.tap - 137.1) < 0.1)
-    #expect(abs(delivered.demineralized - 112.9) < 0.1)
-    #expect(abs(delivered.tapFraction - 0.548) < 0.001)
+    #expect(abs(delivered.tap - 125) < 0.001)
+    #expect(abs(delivered.demineralized - 125) < 0.001)
+    #expect(abs(delivered.tapFraction - 0.5) < 0.000_001)
   }
 
-  @Test("A 50:50 cup would need 141 g in Beaker A, not 113 g")
-  func beakerAForAnEvenBlend() {
-    let needed = recipe.beakerA(forTapFraction: 0.5)
-
-    #expect(abs(needed - 141) < 1)
-
-    var even = recipe
-    even.kettleFill.demineralized = needed
-    #expect(abs(even.delivered.tap - 125) < 0.5)
-    #expect(abs(even.delivered.demineralized - 125) < 0.5)
+  @Test("113 g is the Beaker A fill a 50:50 cup calls for")
+  func beakerAMatchesTheEvenBlend() {
+    #expect(abs(recipe.beakerA(forTapFraction: 0.5) - 113) < 0.5)
   }
 
-  /// `RECIPE.md` said the cold add drops the kettle to ~75 C. It reaches 82.7 C.
-  /// The 75 C figure is the bed, which reads lower than the water.
-  @Test("The cold add leaves the kettle at 82.7 C, not the bed target of 75 C")
+  @Test("The cold add brings the kettle to the 75 C target")
   func kettleTemperatureAfterCooler() {
-    #expect(abs(recipe.kettleTemperatureAfterCooler - 82.7) < 0.1)
-    #expect(recipe.kettleTemperatureAfterCooler > recipe.bedTemperatureTarget)
+    #expect(abs(recipe.kettleTemperatureAfterCooler - recipe.temperatureTarget) < 0.05)
   }
 
-  @Test("Reaching 75 C in the kettle would need 27 g, not 13 g")
-  func coolerForSeventyFive() {
-    var colder = recipe
-    colder.cooler.amount = 27
-    colder.steps = colder.steps.map { step in
-      guard step.coolerAdded > 0 else { return step }
-      var updated = step
-      updated.actions = [.addCooler(grams: 27), .pour(grams: 75), .swirl]
-      return updated
-    }
+  @Test("12 g is the Beaker B fill the 75 C target calls for")
+  func coolerMatchesTheTarget() {
+    #expect(abs(recipe.cooler(forTemperature: 75) - 12) < 0.5)
+    #expect(abs(recipe.kettleBeforeCooler - 63) < 0.001)
+  }
 
-    #expect(abs(colder.kettleTemperatureAfterCooler - 75) < 0.5)
+  /// The single-fill variant leaves about 150 g of tap in the kettle unless the
+  /// surplus is poured off. That 25 g never leaves, and it takes demineralized
+  /// water with it, so both the blend and the temperature miss.
+  @Test("Skipping the single-fill pour-off costs both the blend and the temperature")
+  func singleFillWithoutPouringOff() {
+    var sloppy = recipe
+    sloppy.kettleFill.tap = 150
+
+    #expect(abs(sloppy.delivered.tapFraction - 0.55) < 0.001)
+    #expect(abs(sloppy.leftInKettle.total - 25) < 0.001)
+    #expect(abs(sloppy.kettleTemperatureAfterCooler - 77.6) < 0.1)
   }
 }

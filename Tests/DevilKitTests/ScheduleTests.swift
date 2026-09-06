@@ -62,7 +62,7 @@ struct ScheduleTests {
 
     #expect(step.start == BrewTime(minutes: 1, seconds: 45))
     #expect(step.switchPosition == .closed)
-    #expect(step.coolerAdded == 13)
+    #expect(step.coolerAdded == 12)
     #expect(step.poured == 75)
     #expect(step.actions.contains(.swirl))
   }

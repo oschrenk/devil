@@ -1,21 +1,20 @@
 /// What goes into the kettle before the brew starts.
 ///
-/// The tap water is split because the two halves behave differently when the
-/// recipe scales. The brew portion is what the ratio is built on. The buffer
-/// covers kettle dead volume and evaporation, and stays behind by design.
+/// There is no buffer here. The recipe sizes the fill so the last pour empties
+/// the kettle, and that is what makes the tap-to-demineralized split exact:
+/// nothing stays behind to carry water off in the wrong ratio. Filling above
+/// this leaves a blended remainder and shifts the cup toward tap.
 public struct KettleFill: Equatable, Sendable {
   public var tap: Double
-  public var tapBuffer: Double
   public var demineralized: Double
 
-  public init(tap: Double, tapBuffer: Double, demineralized: Double) {
+  public init(tap: Double, demineralized: Double) {
     self.tap = tap
-    self.tapBuffer = tapBuffer
     self.demineralized = demineralized
   }
 
   public var blend: Blend {
-    Blend(tap: tap + tapBuffer, demineralized: demineralized)
+    Blend(tap: tap, demineralized: demineralized)
   }
 
   public var total: Double {
@@ -64,10 +63,16 @@ public struct Recipe: Equatable, Sendable {
   public var roast: String
   public var dose: Double
   public var kettleFill: KettleFill
+  /// What the kettle is set to before the first pour.
   public var brewTemperature: Double
+  /// What the kettle reads by the time the last pour comes round, measured
+  /// rather than modelled. The kettle sits off its base through the brew and
+  /// gives up heat, so sizing the cooler against `brewTemperature` overstates
+  /// how much cold water the last pour can absorb.
+  public var kettleTemperatureAtLastPour: Double
   public var cooler: Cooler
-  /// Observed, not computed. See `kettleTemperatureAfterCooler`.
-  public var bedTemperatureTarget: Double
+  /// What the last pour reaches once the cooler goes in.
+  public var temperatureTarget: Double
   public var preheat: Preheat
   public var steps: [Step]
 
@@ -80,8 +85,9 @@ public struct Recipe: Equatable, Sendable {
     dose: Double,
     kettleFill: KettleFill,
     brewTemperature: Double,
+    kettleTemperatureAtLastPour: Double,
     cooler: Cooler,
-    bedTemperatureTarget: Double,
+    temperatureTarget: Double,
     preheat: Preheat,
     steps: [Step]
   ) {
@@ -93,8 +99,9 @@ public struct Recipe: Equatable, Sendable {
     self.dose = dose
     self.kettleFill = kettleFill
     self.brewTemperature = brewTemperature
+    self.kettleTemperatureAtLastPour = kettleTemperatureAtLastPour
     self.cooler = cooler
-    self.bedTemperatureTarget = bedTemperatureTarget
+    self.temperatureTarget = temperatureTarget
     self.preheat = preheat
     self.steps = steps
   }

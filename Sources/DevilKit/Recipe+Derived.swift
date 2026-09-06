@@ -58,22 +58,40 @@ public extension Recipe {
     brew.leftInKettle
   }
 
-  /// The kettle temperature once the cooler goes in, by weighted average.
-  ///
-  /// This is the water temperature, not the bed temperature. The bed has been
-  /// giving up heat since the previous pour and reads lower, which is what
-  /// `bedTemperatureTarget` records.
-  var kettleTemperatureAfterCooler: Double {
+  /// What the kettle holds when the cooler goes in, before it goes in.
+  var kettleBeforeCooler: Double {
     guard let coolerStep = steps.first(where: { $0.coolerAdded > 0 }) else {
-      return brewTemperature
+      return kettleFill.total
     }
     let pouredBefore = steps
       .filter { $0.start < coolerStep.start }
       .reduce(0) { $0 + $1.poured }
-    let inKettle = kettleFill.total - pouredBefore
-    let added = coolerStep.coolerAdded
-    guard inKettle + added > 0 else { return brewTemperature }
-    return (inKettle * brewTemperature + added * cooler.temperature) / (inKettle + added)
+    return kettleFill.total - pouredBefore
+  }
+
+  /// The kettle temperature once the cooler goes in, by weighted average.
+  ///
+  /// Measured against `kettleTemperatureAtLastPour`, not `brewTemperature`.
+  /// The kettle has been cooling since the first pour, and using the set
+  /// temperature here would call for more cold water than the pour can take.
+  var kettleTemperatureAfterCooler: Double {
+    let inKettle = kettleBeforeCooler
+    let added = steps.reduce(0) { $0 + $1.coolerAdded }
+    guard inKettle + added > 0 else { return kettleTemperatureAtLastPour }
+    let heat = inKettle * kettleTemperatureAtLastPour + added * cooler.temperature
+    return heat / (inKettle + added)
+  }
+
+  /// How much cold water the last pour needs to reach `target`.
+  ///
+  /// This is the other half of `beakerA(forTapFraction:)`: Beaker A sets the
+  /// blend, Beaker B sets the temperature, and the recipe is the pair that
+  /// satisfies both at once.
+  func cooler(forTemperature target: Double) -> Double {
+    let inKettle = kettleBeforeCooler
+    let hot = kettleTemperatureAtLastPour
+    guard hot > target, target > cooler.temperature else { return 0 }
+    return inKettle * (hot - target) / (target - cooler.temperature)
   }
 
   /// How much demineralized water Beaker A needs for the coffee to receive

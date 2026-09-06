@@ -7,24 +7,27 @@ public extension Recipe {
     name: "Hario Switch, Water and Temp Managed",
     brewer: "Hario Switch",
     grinder: "1Zpresso K-Ultra",
-    // The Settings block. Prep step 1 said 8.0 until DEVIL-02 made them agree.
+    // Unresolved. The Settings block says 7.8, Prep step 1 said 8.0, and the
+    // spreadsheet the recipe was derived from says 8.1. Nothing decides between
+    // them, so the Settings block wins and this stays the one value in the file
+    // that rests on no evidence.
     grindSetting: "7.8",
     roast: "Medium",
     dose: 15,
     kettleFill: KettleFill(
-      // 125 g intended brew portion, plus 25 g for kettle dead volume and
-      // evaporation, plus Beaker A.
+      // Half the 250 g is tap, and Beaker A carries the demineralized share
+      // that has to be hot. The two total 238 g, which the four pours empty
+      // exactly. No buffer: see the note on KettleFill.
       tap: 125,
-      tapBuffer: 25,
       demineralized: 113
     ),
     brewTemperature: 92,
-    // Beaker B, held at room temperature.
-    cooler: Cooler(amount: 13, temperature: 20),
-    // Measured at the bed, not worked out from the kettle. Adding 13 g at 20 C
-    // to the kettle leaves the water near 83 C; the bed reads lower because it
-    // has been cooling since the 1:00 pour.
-    bedTemperatureTarget: 75,
+    // Measured, not modelled. The kettle is off its base from 0:00 to 1:45.
+    kettleTemperatureAtLastPour: 85.5,
+    // Beaker B, held at room temperature. 63 g at 85.5 C plus 12 g at 20 C is
+    // 75 g at 75 C, which is why the last pour is 75 g and Beaker B is 12 g.
+    cooler: Cooler(amount: 12, temperature: 20),
+    temperatureTarget: 75,
     preheat: Preheat(temperature: 96, throughBrewer: 200, intoCup: 100),
     steps: [
       Step(
@@ -57,7 +60,7 @@ public extension Recipe {
         title: "Cold add and swirl",
         // Closed again, so the last pour is an immersion.
         switchPosition: .closed,
-        actions: [.addCooler(grams: 13), .pour(grams: 75), .swirl]
+        actions: [.addCooler(grams: 12), .pour(grams: 75), .swirl]
       ),
       Step(
         start: BrewTime(minutes: 2, seconds: 30),

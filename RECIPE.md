@@ -21,9 +21,10 @@ A complex Switch recipe that does **three things at once**:
 - **Total water through bed**: 250 g
 - **Brew ratio**: 1 : 16.7
 - **Roast target**: Medium
-- **Brew water composition**: ~55 % tap + ~45 % demineralized, as brewed (see the water plan note)
+- **Brew water composition**: 50 % tap + 50 % demineralized, exactly
 - **Initial brew temp**: 92 °C
-- **Mid-brew bed temp target**: ~75 °C
+- **Kettle temp at the last pour**: ~85.5 °C, measured after it cools through the brew
+- **Mid-brew temp target**: 75 °C
 - **Total brew time**: ~3:30
 - **Preheat kettle setting**: 96 °C (max usable at Guatemala City altitude before bubbling)
 
@@ -37,7 +38,7 @@ A complex Switch recipe that does **three things at once**:
 - Fellow Staag Kettle
 - Acaia Pearl
 - **Beaker A** — medium (~150 ml): pre-measured demineralized water for the kettle
-- **Beaker B** — small (~25 ml): room-temp demineralized water for the mid-brew cool-down
+- **Beaker B** — small (~25 ml): 12 g room-temp demineralized water for the mid-brew cool-down
 - Drinking cup
 
 ### Water Plan
@@ -48,24 +49,22 @@ A complex Switch recipe that does **three things at once**:
 - 100 ml: into the cup
 - Source: any water; kettle at 96 °C (boiling)
 
-**Brew water in kettle** — ~263 g, heated to 92 °C
+**Brew water in kettle** — 238 g, heated to 92 °C
 
-- 125 g tap water (intended brew portion)
-- 25 g tap water (buffer for kettle dead volume + evaporation)
+- 125 g tap water
 - 113 g demineralized water (from Beaker A)
 
-**Mid-brew cooler** — 13 ml
+**Mid-brew cooler** — 12 g
 
 - Pure demineralized water
 - Room temperature (~20 °C)
 - Held in Beaker B
 
-> The kettle holds one blend.
-> Every pour takes tap and demin in the ratio the kettle is at.
-> The 26 g left behind is blended too, not pure tap.
-> Pour by pour, the bed receives **137 g tap against 113 g demin**.
-> The cup lands near **55/45 tap : demin**.
-> A true 50/50 cup needs **141 g in Beaker A**, not 113 g, and leaves 54 g behind.
+> The last pour empties the kettle, so everything you put in reaches the coffee.
+> That makes the split exact, at **125 g tap and 125 g demin**, a true **50/50**.
+> Of the 125 g demin, the kettle heats 113 g and Beaker B adds 12 g cold at 1:45.
+> The kettle keeps nothing back, so the brew water has no buffer in it.
+> The 25 g buffer belongs to the single-fill variant below, and to its tap fill only.
 
 #### Optional: Single-Fill Kettle Optimization
 
@@ -74,9 +73,13 @@ To skip the kettle refill between preheat and brew:
 1. Put **450 ml tap water** in the kettle from the start.
    Heat to 96 °C.
 2. Pour off 300 ml for preheating (200 ml through Switch + filter into server, 100 ml into the cup).
-3. The remaining 150 ml tap (= 125 g brew + 25 g buffer) stays in the kettle.
-4. Add **113 g demineralized water** from Beaker A → kettle now holds the same ~263 g brew batch as the standard plan.
-5. Reheat to 92 °C and proceed with the brew.
+3. About 150 ml tap remains.
+   The 25 ml over is slack, because you cannot pour off exactly 300 ml.
+4. **Pour off the surplus until exactly 125 g tap remains.**
+   Skip this and you lose the point of the recipe.
+   150 g tap gives a 55/45 cup, and the cold add reaches only 77.6 °C.
+5. Add **113 g demineralized water** from Beaker A, for the same 238 g batch as the standard plan.
+6. Reheat to 92 °C and proceed with the brew.
 
 ### Step-by-Step
 
@@ -86,7 +89,7 @@ To skip the kettle refill between preheat and brew:
 2. Place paper filter in Switch; sit Switch on top of Hario server.
 3. Pre-measure into beakers:
    - **Beaker A**: 113 g demineralized water
-   - **Beaker B**: 13 ml room-temp demineralized water
+   - **Beaker B**: 12 g room-temp demineralized water
 4. Drinking cup ready alongside the server.
 5. Seat the filter into the switch
 
@@ -101,9 +104,9 @@ To skip the kettle refill between preheat and brew:
 
 #### 3. Assemble Brew Water (Re-Set Kettle to 92 °C)
 
-1. Refill kettle with **125 g tap water + 25 g buffer** (= 150 g tap).
+1. Refill the kettle with **125 g tap water**.
 2. Add **113 g demineralized water** from Beaker A.
-3. Set kettle to 92 °C and bring to temperature.
+3. Set the kettle to 92 °C and bring it to temperature.
 
 #### 4. Brew (15 G Coffee · 250 G Total Through the Bed)
 
@@ -130,8 +133,8 @@ To skip the kettle refill between preheat and brew:
 **~1:45 — Cold add + swirl**
 
 - **Close switch** (down)
-- Pour 13 ml cold demin from Beaker B into kettle
-- This drops water temp in kettle to ~83 °C, and the bed to the ~75 °C target
+- Pour 12 g cold demin from Beaker B into kettle
+- 63 g at ~85.5 °C plus 12 g at 20 °C brings the kettle to 75 °C
 - Pour 75 g
 - Swirl
 - Immersion phase begins
