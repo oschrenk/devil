@@ -18,12 +18,13 @@ public struct BrewNotes: Equatable, Sendable {
   public var afterfeel: String
   public var balance: String
 
-  /// `beans` and `waterRecipe` start as the bare tag, so the vault's own
-  /// convention survives a round trip instead of arriving as an empty line to
-  /// be remembered.
+  /// Everything starts empty, including the two that name a vault tag. A file
+  /// states what the app knows, and a bare `#beans/` is not knowledge. The
+  /// editor is where the tag belongs, and that arrives with the screen that
+  /// takes these fields.
   public init(
-    beans: String = "#beans/",
-    waterRecipe: String = "#water/",
+    beans: String = "",
+    waterRecipe: String = "",
     totalDissolvedSolids: String = "",
     concentration: String = "",
     aroma: String = "",

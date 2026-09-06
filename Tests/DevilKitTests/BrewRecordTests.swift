@@ -110,27 +110,50 @@ struct BrewRecordTests {
   func waterRecipeIsTyped() {
     let lines = record().markdown.split(separator: "\n").map(String.init)
 
-    #expect(lines.contains("- Water Recipe: #water/"))
+    #expect(!lines.contains { $0.hasPrefix("- Water Recipe") })
     #expect(lines.contains("beakerA: 107"))
     #expect(lines.contains("beakerB: 18"))
+
+    var typed = record()
+    typed.notes.waterRecipe = "#water/third-wave-half"
+    #expect(typed.markdown.contains("- Water Recipe: #water/third-wave-half"))
   }
 
-  /// Two trailing spaces are a hard line break in markdown, and a linter in
-  /// the vault flags one.
-  @Test("No line ends in whitespace")
-  func noTrailingSpace() {
-    let blank = record(notes: BrewNotes(beans: "", waterRecipe: ""))
+  /// A blank line is not a fact, and a form nobody can fill in yet is noise
+  /// in every brew ever written.
+  @Test("A field with no answer is left out")
+  func blankFieldsAreOmitted() {
+    let blank = record().markdown
 
-    for line in blank.markdown.split(separator: "\n", omittingEmptySubsequences: false) {
+    #expect(!blank.contains("Aroma"))
+    #expect(!blank.contains("Beans"))
+    #expect(!blank.contains("Total Dissolved Solids"))
+    for line in blank.split(separator: "\n", omittingEmptySubsequences: false) {
       #expect(line == line.reversed().drop { $0 == " " }.reversed().map(String.init).joined())
     }
-    #expect(blank.markdown.contains("- Aroma:\n"))
-    #expect(blank.markdown.contains("- Beans:\n"))
   }
 
-  @Test("The body lists the vault's nineteen fields in its own order")
+  @Test("A brew with nothing typed states only what the app measured")
   func bodyOrder() {
     let labels = record().markdown
+      .split(separator: "\n")
+      .filter { $0.hasPrefix("- ") }
+      .compactMap { $0.dropFirst(2).split(separator: ":").first.map(String.init) }
+
+    #expect(labels == [
+      "Recipe", "Grinder", "Grind Size", "Temperature", "Yield", "Weight",
+    ])
+  }
+
+  /// Filled in, the file keeps the vault's own order, so it still pastes.
+  @Test("A brew with every field typed lists all nineteen in order")
+  func fullBodyOrder() {
+    let notes = BrewNotes(
+      beans: "a", waterRecipe: "b", totalDissolvedSolids: "c", concentration: "d",
+      aroma: "e", flavour: "f", aftertaste: "g", acidity: "h", sweetness: "i",
+      bitterness: "j", texture: "k", afterfeel: "l", balance: "m"
+    )
+    let labels = record(notes: notes).markdown
       .split(separator: "\n")
       .filter { $0.hasPrefix("- ") }
       .compactMap { $0.dropFirst(2).split(separator: ":").first.map(String.init) }
