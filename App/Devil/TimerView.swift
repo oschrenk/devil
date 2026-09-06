@@ -10,17 +10,20 @@ import SwiftUI
 /// change the temperature the recipe is built on.
 struct TimerView: View {
   let recipe: Recipe
-  let start: Date
+  let brew: RunningBrew
 
   @Environment(\.dismiss) private var dismiss
 
   var body: some View {
-    TimelineView(.periodic(from: start, by: 1)) { context in
-      let elapsed = Int(context.date.timeIntervalSince(start).rounded(.down))
+    // Ticks from the press, not from 0:00, so the lead-in counts down too.
+    TimelineView(.periodic(from: brew.tappedAt, by: 1)) { context in
+      let untilStart = brew.start.timeIntervalSince(context.date)
+      let countdown = Countdown.remaining(untilStart: untilStart)
+      let elapsed = max(0, Int(-untilStart.rounded(.up)))
       let progress = recipe.progress(atSeconds: elapsed)
 
       VStack(spacing: 0) {
-        Clock(progress: progress)
+        Clock(progress: progress, countdown: countdown)
         CurrentStep(recipe: recipe, progress: progress)
         Spacer(minLength: 0)
         Schedule(recipe: recipe, progress: progress)
@@ -42,16 +45,31 @@ struct TimerView: View {
   }
 }
 
+/// The clock, counting down to 0:00 and then up.
+///
+/// Red while it counts down, because that is the only time the number means
+/// "not yet" rather than "how long it has been". The two run in the same
+/// m:ss shape so the digits do not jump when it turns over.
 private struct Clock: View {
   let progress: BrewProgress
+  let countdown: Int
+
+  private var isCountingDown: Bool {
+    countdown > 0
+  }
+
+  private var shown: BrewTime {
+    isCountingDown ? BrewTime(seconds: countdown) : progress.elapsed
+  }
 
   var body: some View {
     VStack(spacing: 4) {
-      Text(progress.elapsed.formatted)
+      Text(shown.formatted)
         .font(.system(size: 68, weight: .semibold, design: .rounded))
         .monospacedDigit()
         .contentTransition(.numericText())
-      ProgressView(value: progress.fraction)
+        .foregroundStyle(isCountingDown ? .red : .primary)
+      ProgressView(value: isCountingDown ? 0 : progress.fraction)
         .tint(progress.isComplete ? .green : .accentColor)
     }
     .padding(.vertical, 8)
@@ -73,9 +91,7 @@ private struct CurrentStep: View {
       }
 
       ForEach(recipe.instructions(for: progress.step), id: \.self) { line in
-        Label(line, systemImage: "circle.fill")
-          .font(.title3)
-          .labelStyle(BulletLabel())
+        InstructionRow(text: line)
       }
 
       if let seconds = progress.secondsUntilNextStep, let next = progress.nextStep {
@@ -133,19 +149,27 @@ private struct Schedule: View {
   }
 }
 
-private struct BulletLabel: LabelStyle {
-  func makeBody(configuration: Configuration) -> some View {
+/// One line of what to do.
+///
+/// The bullet is a `Text`, not an SF Symbol. `.firstTextBaseline` puts an
+/// image's bottom edge on the baseline, so a small dot sits low against the
+/// words. A glyph carries the font's own metrics and lines up on its own.
+private struct InstructionRow: View {
+  let text: String
+
+  var body: some View {
     HStack(alignment: .firstTextBaseline, spacing: 10) {
-      configuration.icon
-        .font(.system(size: 6))
+      Text("\u{2022}")
         .foregroundStyle(.secondary)
-      configuration.title
+        .frame(width: 10, alignment: .leading)
+      Text(text)
     }
+    .font(.title3)
   }
 }
 
 #Preview {
   NavigationStack {
-    TimerView(recipe: .switchWaterAndTempManaged, start: .now)
+    TimerView(recipe: .switchWaterAndTempManaged, brew: RunningBrew(tappedAt: .now))
   }
 }

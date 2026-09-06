@@ -102,7 +102,11 @@ struct ContentView: View {
 
         Section {
           Button {
-            running = RunningBrew(start: .now)
+            // Ignore a second press while one is already running. A stray tap
+            // during the cover's animation would otherwise start a new brew
+            // and drop the one in progress.
+            guard running == nil else { return }
+            running = RunningBrew(tappedAt: .now)
           } label: {
             Label("Start brewing", systemImage: "play.fill")
               .frame(maxWidth: .infinity)
@@ -120,7 +124,7 @@ struct ContentView: View {
     // did, closing the timer part-way through a brew.
     .fullScreenCover(item: $running) { brew in
       NavigationStack {
-        TimerView(recipe: recipe, start: brew.start)
+        TimerView(recipe: recipe, brew: brew)
       }
     }
   }
@@ -131,10 +135,16 @@ struct ContentView: View {
 /// The wrapper exists so the cover is presented once per brew. Keying it on a
 /// bare `Date?` would rebuild the timer whenever the parent redrew.
 struct RunningBrew: Identifiable, Equatable {
-  let start: Date
+  /// When the button was pressed.
+  let tappedAt: Date
+
+  /// When water meets coffee, a lead-in later. This is 0:00 on the brew clock.
+  var start: Date {
+    tappedAt.addingTimeInterval(Double(Countdown.leadIn))
+  }
 
   var id: Date {
-    start
+    tappedAt
   }
 }
 
