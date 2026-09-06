@@ -115,6 +115,19 @@ struct BrewRecordTests {
     #expect(lines.contains("beakerB: 18"))
   }
 
+  /// Two trailing spaces are a hard line break in markdown, and a linter in
+  /// the vault flags one.
+  @Test("No line ends in whitespace")
+  func noTrailingSpace() {
+    let blank = record(notes: BrewNotes(beans: "", waterRecipe: ""))
+
+    for line in blank.markdown.split(separator: "\n", omittingEmptySubsequences: false) {
+      #expect(line == line.reversed().drop { $0 == " " }.reversed().map(String.init).joined())
+    }
+    #expect(blank.markdown.contains("- Aroma:\n"))
+    #expect(blank.markdown.contains("- Beans:\n"))
+  }
+
   @Test("The body lists the vault's nineteen fields in its own order")
   func bodyOrder() {
     let labels = record().markdown

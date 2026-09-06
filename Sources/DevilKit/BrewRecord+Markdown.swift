@@ -31,30 +31,38 @@ public extension BrewRecord {
     lines.append("# \u{2615}\u{FE0F} \(stamp.readable)")
     lines.append("")
 
-    lines.append("- Beans: \(notes.beans)")
-    lines.append("- Recipe: \(Self.recipeTag)")
+    lines.append(Self.field("Beans", notes.beans))
+    lines.append(Self.field("Recipe", Self.recipeTag))
     // Typed, not filled in. The tap and demineralized split is temperature
     // management rather than a water recipe, and `#water/` names a mineral
     // profile this app knows nothing about. The split stays in frontmatter as
     // `beakerA` and `beakerB`, where it is a measurement and not a claim.
-    lines.append("- Water Recipe: \(notes.waterRecipe)")
-    lines.append("- Grinder: \(grinder)")
-    lines.append("- Grind Size: \(Format.grind(grind))")
-    lines.append("- Total Dissolved Solids: \(notes.totalDissolvedSolids)")
-    lines.append("- Temperature: \(Format.degrees(brewTemperature))")
-    lines.append("- Yield: \(Format.grams(water))")
-    lines.append("- Concentration: \(notes.concentration)")
-    lines.append("- Aroma: \(notes.aroma)")
-    lines.append("- Flavour: \(notes.flavour)")
-    lines.append("- Aftertaste: \(notes.aftertaste)")
-    lines.append("- Acidity: \(notes.acidity)")
-    lines.append("- Sweetness: \(notes.sweetness)")
-    lines.append("- Bitterness: \(notes.bitterness)")
-    lines.append("- Weight: \(Format.grams(dose))")
-    lines.append("- Texture: \(notes.texture)")
-    lines.append("- Afterfeel: \(notes.afterfeel)")
-    lines.append("- Balance: \(notes.balance)")
+    lines.append(Self.field("Water Recipe", notes.waterRecipe))
+    lines.append(Self.field("Grinder", grinder))
+    lines.append(Self.field("Grind Size", Format.grind(grind)))
+    lines.append(Self.field("Total Dissolved Solids", notes.totalDissolvedSolids))
+    lines.append(Self.field("Temperature", Format.degrees(brewTemperature)))
+    lines.append(Self.field("Yield", Format.grams(water)))
+    lines.append(Self.field("Concentration", notes.concentration))
+    lines.append(Self.field("Aroma", notes.aroma))
+    lines.append(Self.field("Flavour", notes.flavour))
+    lines.append(Self.field("Aftertaste", notes.aftertaste))
+    lines.append(Self.field("Acidity", notes.acidity))
+    lines.append(Self.field("Sweetness", notes.sweetness))
+    lines.append(Self.field("Bitterness", notes.bitterness))
+    lines.append(Self.field("Weight", Format.grams(dose)))
+    lines.append(Self.field("Texture", notes.texture))
+    lines.append(Self.field("Afterfeel", notes.afterfeel))
+    lines.append(Self.field("Balance", notes.balance))
     return lines.joined(separator: "\n") + "\n"
+  }
+
+  /// `- Aroma:` rather than `- Aroma: ` when there is nothing to say.
+  ///
+  /// A trailing space is invisible and not harmless: two of them are a hard
+  /// line break in markdown, and a linter in the vault flags one.
+  static func field(_ label: String, _ value: String) -> String {
+    value.isEmpty ? "- \(label):" : "- \(label): \(value)"
   }
 
   /// The one recipe this app brews, so it needs no field of its own.

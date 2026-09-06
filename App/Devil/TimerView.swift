@@ -10,8 +10,11 @@ import SwiftUI
 /// change the temperature the recipe is built on.
 struct TimerView: View {
   let recipe: Recipe
+  let settings: BrewSettings
   let brew: RunningBrew
   let scale: ScaleConnection
+
+  let store = BrewLogStore()
 
   @Environment(\.dismiss) private var dismiss
   @State private var clock = BrewClock()
@@ -26,6 +29,7 @@ struct TimerView: View {
   /// that is the most expensive thing on the screen and the least visible.
   @State private var drawnTrace = PourTrace()
   @State private var flow: Double?
+  @State private var askingToSave = false
 
   /// Reads the clock itself rather than borrowing the timeline's tick, which is
   /// what lets the toolbar live outside the per-second redraw.
@@ -39,6 +43,37 @@ struct TimerView: View {
       clock.hold(raw: raw)
       scale.send(.stopTimer)
     }
+  }
+
+  /// Where the brew stands, read from the clock rather than the timeline, so
+  /// the toolbar can stay outside the per-second redraw.
+  private var now: BrewProgress {
+    let elapsed = clock.elapsed(raw: Date.now.timeIntervalSince(brew.start))
+    return recipe.progress(atSeconds: max(0, Int(elapsed.rounded(.down))))
+  }
+
+  /// Ends the brew, writing it down unless it never started.
+  ///
+  /// A brew that has not reached 0:00 leaves nothing. You pressed the wrong
+  /// button, and a file for each of those buries the mornings that counted.
+  private func finish() {
+    guard startSignal.hasSent else { return dismiss() }
+    if now.isComplete {
+      save()
+      dismiss()
+    } else {
+      // Only you know whether 0:30 was a fumble or a short brew on purpose.
+      askingToSave = true
+    }
+  }
+
+  private func save() {
+    let record = BrewRecord.of(
+      settings: settings,
+      at: BrewStamp(Date.now),
+      finished: now.isComplete
+    )
+    store.save(record, trace: trace)
   }
 
   /// Long enough to be silence rather than a gap between messages. The scale
@@ -179,8 +214,23 @@ struct TimerView: View {
           .fontWeight(.semibold)
       }
       ToolbarItem(placement: .topBarTrailing) {
-        Button("Stop", role: .destructive) { dismiss() }
+        // `Done`, and not red. Reaching the end of a recipe is the ordinary
+        // way out, and a destructive button reads as abandoning the brew.
+        Button("Done", action: finish)
       }
+    }
+    .confirmationDialog(
+      "Save this brew?",
+      isPresented: $askingToSave,
+      titleVisibility: .visible
+    ) {
+      Button("Save") {
+        save()
+        dismiss()
+      }
+      Button("Discard", role: .destructive) { dismiss() }
+    } message: {
+      Text("It stopped before the end.")
     }
     // A brew is followed with the phone on the counter and wet hands. Nothing
     // touches the screen for three minutes, so stop it going dark.
@@ -252,85 +302,6 @@ private struct Clock: View {
   }
 }
 
-/// What to do now, large enough to read from across the counter.
-private struct CurrentStep: View {
-  let recipe: Recipe
-  let progress: BrewProgress
-
-  /// Closed to start with, and kept across brews rather than reset each time.
-  /// Whether the instructions are wanted is a property of how well the recipe
-  /// is known, not of today, and by now the recipe is known.
-  @AppStorage("stepInstructionsShown") private var isExpanded = false
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 12) {
-      HStack(spacing: 10) {
-        Text(progress.step.title)
-          .font(.title2.weight(.semibold))
-        Spacer()
-        SwitchBadge(position: progress.step.switchPosition)
-        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-          .font(.footnote.weight(.semibold))
-          .foregroundStyle(.tertiary)
-      }
-
-      if isExpanded {
-        ForEach(recipe.instructions(for: progress.step), id: \.self) { line in
-          InstructionRow(text: line)
-        }
-      }
-
-      if let seconds = progress.secondsUntilNextStep, let next = progress.nextStep {
-        Text("\(next.title) in \(seconds)s")
-          .font(.subheadline)
-          .foregroundStyle(.secondary)
-          .monospacedDigit()
-      }
-    }
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .padding()
-    .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: 16))
-    // The whole card, not the chevron. A target the size of a fingertip is
-    // the wrong one to aim at with a kettle in the other hand.
-    .contentShape(.rect)
-    .onTapGesture { withAnimation(.snappy) { isExpanded.toggle() } }
-  }
-}
-
-/// The switch position is the one thing that ruins a brew rather than delaying
-/// it, so it gets colour and a shape rather than a line of text.
-private struct SwitchBadge: View {
-  let position: SwitchPosition
-
-  var body: some View {
-    Label(
-      position == .open ? "Open" : "Closed",
-      systemImage: position == .open ? "arrow.up.circle.fill" : "arrow.down.circle.fill"
-    )
-    .font(.headline)
-    .foregroundStyle(position == .open ? .green : .orange)
-  }
-}
-
-/// One line of what to do.
-///
-/// The bullet is a `Text`, not an SF Symbol. `.firstTextBaseline` puts an
-/// image's bottom edge on the baseline, so a small dot sits low against the
-/// words. A glyph carries the font's own metrics and lines up on its own.
-private struct InstructionRow: View {
-  let text: String
-
-  var body: some View {
-    HStack(alignment: .firstTextBaseline, spacing: 10) {
-      Text("\u{2022}")
-        .foregroundStyle(.secondary)
-        .frame(width: 10, alignment: .leading)
-      Text(text)
-    }
-    .font(.title3)
-  }
-}
-
 /// Who stopped the clock.
 ///
 /// Worth saying. A pause nobody remembers causing is a knocked scale or a
@@ -373,6 +344,7 @@ private struct HeldNote: View {
   NavigationStack {
     TimerView(
       recipe: .switchWaterAndTempManaged,
+      settings: BrewSettings(),
       brew: RunningBrew(tappedAt: .now),
       scale: ScaleConnection()
     )
