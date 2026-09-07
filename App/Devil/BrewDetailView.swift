@@ -29,10 +29,11 @@ struct BrewDetailView: View {
   var body: some View {
     Form {
       Section("Brewed") {
-        LabelledValue(label: "When", value: brew.stamp.readable)
+        LabelledValue(label: "When", value: brew.stamp.readableDay)
+        LabelledValue(label: "Time", value: brew.stamp.readableTime)
         LabelledValue(label: "Cups", value: "\(brew.servings)")
         LabelledValue(label: "Dose", value: Format.grams(brew.dose))
-        LabelledValue(label: "Water", value: Format.grams(brew.water))
+        LabelledValue(label: "Water", value: brew.water.millilitres)
         LabelledValue(label: "Grind", value: brew.grind)
         LabelledValue(label: "Size", value: Format.microns(brew.grindMicrons))
         LabelledValue(label: "Grinder", value: brew.grinder)
@@ -60,7 +61,7 @@ struct BrewDetailView: View {
           .lineLimit(4 ... 20)
       }
     }
-    .navigationTitle(brew.stamp.readable)
+    .navigationTitle(brew.stamp.readableDay)
     .navigationBarTitleDisplayMode(.inline)
     .toolbar {
       ShareLink(items: store.files(for: brew)) {

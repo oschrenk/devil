@@ -56,12 +56,20 @@ private struct BrewRow: View {
   let brew: BrewRecord
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 4) {
-      HStack {
-        Text(brew.stamp.readable)
+    VStack(alignment: .leading, spacing: 3) {
+      // Baselines, not centres. `stopped early` set against the middle of a
+      // two-line block floated between them; on the baseline it reads as part
+      // of the date it qualifies.
+      HStack(alignment: .firstTextBaseline, spacing: 6) {
+        Text(brew.stamp.readableDay)
           .font(.headline)
+        // The day tells two brews apart. The minute almost never does, so it
+        // is here to be checked rather than read.
+        Text(brew.stamp.readableTime)
+          .font(.caption)
+          .foregroundStyle(.secondary)
           .monospacedDigit()
-        Spacer()
+        Spacer(minLength: 4)
         if !brew.finished {
           // A short brew is a different morning from a whole one, and the
           // list is the only place that difference shows.
@@ -78,8 +86,16 @@ private struct BrewRow: View {
     .padding(.vertical, 2)
   }
 
+  /// The dose, the water it went into, and the grind.
+  ///
+  /// The servings are gone: the dose already says the size, and says it in
+  /// the units the brew was measured in.
+  ///
+  /// Water in millilitres and coffee in grams. They are the same number for
+  /// water, and the different unit is what tells the two figures apart at a
+  /// glance.
   private var summary: String {
-    let people = brew.servings == 1 ? "1 cup" : "\(brew.servings) cups"
-    return "\(people) · \(Format.grams(brew.dose)) · grind \(brew.grind)"
+    let parts = [Format.grams(brew.dose), brew.water.millilitres, "grind \(brew.grind)"]
+    return parts.joined(separator: " \u{00B7} ")
   }
 }
