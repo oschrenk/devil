@@ -62,9 +62,9 @@ struct BrewRecordTests {
   func bodyLines() {
     let lines = record().markdown.split(separator: "\n").map(String.init)
 
-    #expect(lines.contains("- Grind Size: 7.9 (613 \u{00B5}m)"))
-    #expect(lines.contains("grind: 7.9"))
-    #expect(lines.contains("grindMicrons: 613"))
+    #expect(lines.contains("- Grind Size: 7.6 (583 \u{00B5}m)"))
+    #expect(lines.contains("grind: 7.6"))
+    #expect(lines.contains("grindMicrons: 583"))
     #expect(lines.contains("- Temperature: 92 °C"))
     #expect(lines.contains("- Yield: 250 g"))
     #expect(lines.contains("- Weight: 15 g"))
@@ -106,7 +106,7 @@ struct BrewRecordTests {
       .split(separator: "\n", omittingEmptySubsequences: false)
       .map { line -> String in
         switch line {
-        case "- Grind Size: 7.9 (613 \u{00B5}m)": "- Grind Size: 8.4 (guessed)"
+        case "- Grind Size: 7.6 (583 \u{00B5}m)": "- Grind Size: 8.4 (guessed)"
         case "- Yield: 250 g": "- Yield: about a cup"
         default: String(line)
         }
@@ -115,8 +115,8 @@ struct BrewRecordTests {
 
     let parsed = BrewRecord.parse(markdown: edited)
 
-    #expect(parsed?.grind == "7.9")
-    #expect(parsed?.grindMicrons == 613)
+    #expect(parsed?.grind == "7.6")
+    #expect(parsed?.grindMicrons == 583)
     #expect(parsed?.water == 250)
   }
 

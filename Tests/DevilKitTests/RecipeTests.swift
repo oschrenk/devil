@@ -23,7 +23,7 @@ struct RecipeTests {
   /// this recipe was dialled in at.
   @Test("An unset grind starts at the size in the settings")
   func grindDefaultsToTheSize() {
-    #expect(recipe.grindSetting == GrindSetting(number: 7, click: 9))
+    #expect(recipe.grindSetting == GrindSetting(number: 7, click: 6))
 
     let abaca = Recipe.switchWaterAndTempManaged(for: BrewSettings(filter: .cafecAbaca))
     #expect(abaca.grindSetting == recipe.grindSetting)

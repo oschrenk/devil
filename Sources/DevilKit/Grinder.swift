@@ -15,6 +15,16 @@ public struct Grinder: Equatable, Hashable, Sendable, Identifiable {
   public var ticks: Int
   public var minMicron: Double
   public var maxMicron: Double
+  /// What the published figures have to be multiplied by for this grinder.
+  ///
+  /// One for a grinder the figures actually describe. Aftermarket burrs cut
+  /// differently at the same number, so the curve's shape survives and its
+  /// size does not.
+  ///
+  /// A factor rather than an offset. Both fit a single measured point, and
+  /// only one of them stays positive: taking 643 microns off the Ode to put
+  /// its 9.1 in the right place leaves its finest setting at minus 93.
+  public var micronScale: Double
 
   public var id: String {
     name
@@ -26,7 +36,8 @@ public struct Grinder: Equatable, Hashable, Sendable, Identifiable {
     clicksPerNumber: Int,
     ticks: Int,
     minMicron: Double,
-    maxMicron: Double
+    maxMicron: Double,
+    micronScale: Double = 1
   ) {
     self.name = name
     self.startNumber = startNumber
@@ -34,13 +45,14 @@ public struct Grinder: Equatable, Hashable, Sendable, Identifiable {
     self.ticks = ticks
     self.minMicron = minMicron
     self.maxMicron = maxMicron
+    self.micronScale = micronScale
   }
 
   /// What this grinder can reach. The two shipped grinders overlap only
   /// between 550 and 760 microns, so a size set for one can be off the end of
   /// the other, and the app has to say so rather than round it quietly.
   public var micronRange: ClosedRange<Double> {
-    minMicron ... maxMicron
+    minMicron * micronScale ... maxMicron * micronScale
   }
 
   private func tick(of setting: GrindSetting) -> Int {
@@ -58,9 +70,10 @@ public struct Grinder: Equatable, Hashable, Sendable, Identifiable {
 
   /// The particle size at one detent.
   public func micron(at setting: GrindSetting) -> Double {
-    guard ticks > 1 else { return minMicron }
+    guard ticks > 1 else { return minMicron * micronScale }
     let position = Double(tick(of: setting)) / Double(ticks - 1)
-    return minMicron + GrindCurve.at(position) * (maxMicron - minMicron)
+    let published = minMicron + GrindCurve.at(position) * (maxMicron - minMicron)
+    return published * micronScale
   }
 
   /// The detent that comes closest to a size.
@@ -108,18 +121,29 @@ public extension Grinder {
     maxMicron: 760
   )
 
-  /// Numbers 1 to 11, three clicks each, 550 to 1400 microns.
+  /// Numbers 1 to 11, three clicks each, over a dial the published figures
+  /// put at 550 to 1400 microns.
   ///
-  /// The published figures describe the stock burrs. An Ode wearing SSP burrs
-  /// grinds differently at the same number, and `DEVIL-36` deals with that.
-  static let fellowOdeGen1 = Grinder(
-    name: "Fellow Ode (Gen 1)",
+  /// Those figures describe the stock burrs, and this Ode wears SSP ones. The
+  /// scale comes from one point Oliver ground and compared: 7.6 on the
+  /// K-Ultra is the same coffee as 9.1 here. The K-Ultra puts 7.6 at 583
+  /// microns and the stock curve puts 9.1 at 1226, so this Ode cuts to a
+  /// little under half of what its dial claims.
+  ///
+  /// That lands its useful range at 262 to 666 microns, which agrees with
+  /// pour-over sitting between 6 and 9 on the dial.
+  ///
+  /// One point fixes the size and says nothing about the shape. Where the two
+  /// grinders disagree away from 583 microns, this is the number to correct.
+  static let fellowOdeSSP = Grinder(
+    name: "Fellow Ode (SSP)",
     startNumber: 1,
     clicksPerNumber: 3,
     ticks: 33,
     minMicron: 550,
-    maxMicron: 1400
+    maxMicron: 1400,
+    micronScale: 583.0 / 1225.6
   )
 
-  static let all: [Grinder] = [.oneZpressoKUltra, .fellowOdeGen1]
+  static let all: [Grinder] = [.oneZpressoKUltra, .fellowOdeSSP]
 }

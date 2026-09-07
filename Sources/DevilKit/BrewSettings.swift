@@ -44,9 +44,9 @@ public struct BrewSettings: Equatable, Sendable {
     self.preheat = preheat
   }
 
-  /// Where `7.9` on the K-Ultra lands, which is where this recipe was dialled
-  /// in before the app knew what a micron was.
-  public static let defaultMicrons = 613.0
+  /// Where `7.6` on the K-Ultra lands, which is where Oliver has this recipe
+  /// dialled in.
+  public static let defaultMicrons = 583.0
 
   /// Which detent on the chosen grinder comes closest to the size.
   public var grindSetting: GrindSetting {
