@@ -3,6 +3,8 @@
 /build
 /Packages
 /Devil.xcodeproj
+# Written by xcodegen from project.yml, like the project itself.
+/App/DevilActivity/Info.plist
 xcuserdata/
 DerivedData/
 .swiftpm/

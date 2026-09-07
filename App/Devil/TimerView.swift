@@ -33,6 +33,7 @@ struct TimerView: View {
   @State private var drawnTrace = PourTrace()
   @State private var flow: Double?
   @State private var askingToSave = false
+  @State private var lockScreen = BrewActivity()
   /// Read by the toolbar, which lives outside the timeline and so learns
   /// nothing from the tick. A change here redraws it once, at the end.
   @State private var hasFinished = false
@@ -152,6 +153,20 @@ struct TimerView: View {
         for command in startSignal.commands(elapsed: seconds) {
           scale.send(command)
         }
+      }
+      // Started at 0:00 rather than at the tap, so the Lock Screen clock and
+      // the one on this screen agree. The 3-2-1 is not part of the brew.
+      .onChange(of: startSignal.hasSent) { _, sent in
+        guard sent else { return }
+        lockScreen.start(recipe: recipe, from: brew.start, servings: settings.servings)
+      }
+      // The only messages sent all brew: one a step, and one when the clock
+      // stops or starts again. The clock itself is drawn from the dates.
+      .onChange(of: progress.stepIndex) { _, _ in
+        lockScreen.update(recipe: recipe, at: progress, heldAt: nil)
+      }
+      .onChange(of: clock.isHeld) { _, held in
+        lockScreen.update(recipe: recipe, at: progress, heldAt: held ? seconds : nil)
       }
       // Keyed on the count of readings, not on the weight. A scale holding
       // steady between pours sends the same number ten times a second, and
@@ -274,7 +289,12 @@ struct TimerView: View {
       // that wants a single unambiguous beep.
       scale.send(.resetTimer)
     }
-    .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
+    .onDisappear {
+      UIApplication.shared.isIdleTimerDisabled = false
+      // However the brew ended, the Lock Screen should not still be running
+      // it. `end` also clears one left behind by an app that was killed.
+      lockScreen.end()
+    }
   }
 }
 
@@ -331,55 +351,5 @@ private struct Clock: View {
       }
     }
     .padding(.vertical, 8)
-  }
-}
-
-/// Who stopped the clock.
-///
-/// Worth saying. A pause nobody remembers causing is a knocked scale or a
-/// stray press, and knowing which end it came from is the difference between
-/// carrying on and looking at the counter.
-enum PauseSource {
-  case phone
-  case scale
-}
-
-/// What a held brew says.
-///
-/// The clock stops and the kettle does not, so a long hold leaves the recipe's
-/// temperatures behind even though the times still line up. Better said once,
-/// here, than discovered in the cup.
-private struct HeldNote: View {
-  let source: PauseSource
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      HStack(spacing: 8) {
-        if source == .scale {
-          Image(systemName: "scalemass.fill")
-        }
-        Text(source == .scale ? "Paused on the scale" : "Paused")
-      }
-      .font(.title2.weight(.semibold))
-      .foregroundStyle(source == .scale ? Color.orange : .primary)
-      Text("The clock has stopped. The kettle has not.")
-        .font(.subheadline)
-        .foregroundStyle(.secondary)
-    }
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .padding()
-    .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: 16))
-  }
-}
-
-#Preview {
-  NavigationStack {
-    TimerView(
-      recipe: .switchWaterAndTempManaged,
-      settings: BrewSettings(),
-      brew: RunningBrew(tappedAt: .now),
-      scale: ScaleConnection(),
-      notesFor: .constant(nil)
-    )
   }
 }

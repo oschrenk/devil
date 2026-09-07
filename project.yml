@@ -40,9 +40,12 @@ targets:
     platform: iOS
     sources:
       - App/Devil
+      - Shared
     dependencies:
       - package: DevilKit
         product: DevilKit
+      # Embeds the extension in the app, which is how a Live Activity ships.
+      - target: DevilActivity
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(BUNDLE_PREFIX).devil
@@ -57,7 +60,38 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        # Without this the app may start no Live Activity at all, and the
+        # failure is a thrown error rather than anything visible.
+        INFOPLIST_KEY_NSSupportsLiveActivities: YES
         SWIFT_VERSION: "6.0"
+
+  # The Lock Screen and Dynamic Island views. A Live Activity has to live in
+  # an extension: the system draws it while the app is not running, so the
+  # code it draws from cannot be in the app.
+  DevilActivity:
+    type: app-extension
+    platform: iOS
+    sources:
+      - App/DevilActivity
+      - Shared
+    # The one place a generated Info.plist will not do. An extension has to
+    # declare a nested NSExtension dictionary, and INFOPLIST_KEY_ settings can
+    # only write keys at the top level. Without it the app installs and then
+    # fails with AppexBundleMissingNSExtensionDict.
+    #
+    # XcodeGen writes the file from what follows, so this spec is still the
+    # only thing to edit, and the plist is ignored like the project itself.
+    info:
+      path: App/DevilActivity/Info.plist
+      properties:
+        CFBundleDisplayName: Devil
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(BUNDLE_PREFIX).devil.activity
+        SWIFT_VERSION: "6.0"
+        SKIP_INSTALL: YES
 
 schemes:
   # Declared rather than left to XcodeGen's defaults, so `-scheme Devil` means
@@ -66,6 +100,7 @@ schemes:
     build:
       targets:
         Devil: all
+        DevilActivity: all
     run:
       config: Debug
     archive:
