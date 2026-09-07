@@ -115,7 +115,8 @@ struct BrewLogStore {
       try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
       try record.markdown.write(to: markdown(for: stem), atomically: true, encoding: .utf8)
       if hasReadings, let pour {
-        try pour.json(brew: stem).write(to: trace(for: stem), atomically: true, encoding: .utf8)
+        try record.json(trace: pour)
+          .write(to: trace(for: stem), atomically: true, encoding: .utf8)
       }
       return stem
     } catch {

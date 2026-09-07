@@ -3,6 +3,20 @@ import Testing
 
 @Suite("Pour trace JSON")
 struct PourTraceJSONTests {
+  /// A sidecar for a trace, so these stay about the readings. The facts
+  /// written beside them are `BrewRecordJSONTests`.
+  ///
+  /// The brew names itself after the minute it started, so it is always
+  /// `2026-09-06T0714` here.
+  private func json(_ trace: PourTrace) -> String {
+    BrewRecord.of(
+      settings: BrewSettings(),
+      at: BrewStamp(year: 2026, month: 9, day: 6, hour: 7, minute: 14),
+      finished: true
+    )
+    .json(trace: trace)
+  }
+
   /// Built at the resolution the file stores: hundredths of a second, and the
   /// tenth of a gram the scale reports.
   private func trace(count: Int) -> PourTrace {
@@ -18,7 +32,7 @@ struct PourTraceJSONTests {
   func roundTrip() {
     let original = trace(count: 40)
 
-    let parsed = PourTrace.parse(json: original.json(brew: "2026-09-06T0714"))
+    let parsed = PourTrace.parse(json: json(original))
 
     #expect(parsed?.brew == "2026-09-06T0714")
     #expect(parsed?.trace.samples == original.samples)
@@ -26,9 +40,9 @@ struct PourTraceJSONTests {
 
   @Test("A brew with no readings writes an empty list")
   func emptyTrace() {
-    let json = PourTrace().json(brew: "2026-09-06T0714")
+    let json = json(PourTrace())
 
-    #expect(json == "{\"brew\": \"2026-09-06T0714\", \"samples\": []}")
+    #expect(json.contains("\"samples\": []"))
     #expect(PourTrace.parse(json: json)?.trace.samples.isEmpty == true)
     #expect(PourTrace.parse(json: json)?.brew == "2026-09-06T0714")
   }
@@ -36,7 +50,7 @@ struct PourTraceJSONTests {
   /// Pairs rather than objects, because a brew is two thousand readings.
   @Test("A whole brew stays under forty kilobytes")
   func size() {
-    let json = trace(count: 2000).json(brew: "2026-09-06T0714")
+    let json = json(trace(count: 2000))
 
     #expect(json.utf8.count < 40000)
     #expect(json.utf8.count > 10000)
@@ -78,7 +92,7 @@ struct PourTraceJSONTests {
     var original = PourTrace()
     original.append(seconds: 12.417293834, grams: 102.4)
 
-    let parsed = PourTrace.parse(json: original.json(brew: "b"))
+    let parsed = PourTrace.parse(json: json(original))
 
     #expect(parsed?.trace.samples.first?.seconds == 12.42)
     #expect(parsed?.trace.samples.first?.grams == 102.4)
@@ -90,11 +104,11 @@ struct PourTraceJSONTests {
     original.append(seconds: 12.3, grams: 102.4)
     original.append(seconds: 12.4, grams: -3.5)
 
-    let parsed = PourTrace.parse(json: original.json(brew: "b"))
+    let parsed = PourTrace.parse(json: json(original))
 
     #expect(parsed?.trace.samples == original.samples)
-    #expect(original.json(brew: "b").contains("[12.3, 102.4]"))
-    #expect(original.json(brew: "b").contains("[12.4, -3.5]"))
+    #expect(json(original).contains("[12.3, 102.4]"))
+    #expect(json(original).contains("[12.4, -3.5]"))
   }
 
   /// What too much precision costs.
@@ -111,7 +125,7 @@ struct PourTraceJSONTests {
     original.append(seconds: 1.236, grams: 20)
     original.append(seconds: 1.244, grams: 30)
 
-    let parsed = PourTrace.parse(json: original.json(brew: "b"))
+    let parsed = PourTrace.parse(json: json(original))
 
     // 1.236 rounds up to 1.24, so 1.244 is the one that collides and goes.
     #expect(original.samples.count == 3)
@@ -126,7 +140,7 @@ struct PourTraceJSONTests {
     original.append(seconds: 1, grams: 102.44)
     original.append(seconds: 2, grams: 102.46)
 
-    let parsed = PourTrace.parse(json: original.json(brew: "b"))
+    let parsed = PourTrace.parse(json: json(original))
 
     #expect(parsed?.trace.samples.map(\.grams) == [102.4, 102.5])
   }

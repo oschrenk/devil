@@ -1,17 +1,13 @@
 public extension PourTrace {
-  /// The sidecar that goes to disk beside the markdown.
+  /// The readings, as pairs.
   ///
   /// Pairs rather than objects. An object per reading spends twenty-five bytes
   /// on four bytes of fact, and a brew is two thousand readings.
-  ///
-  /// The file names the brew it belongs to and copies nothing else from the
-  /// markdown. A `grind` repeated here could disagree with the one over there,
-  /// and then neither file is the record.
-  func json(brew: String) -> String {
+  var samplesJSON: String {
     let pairs = samples.map {
       "[\(Self.rounded($0.seconds, places: Self.secondsPlaces)), \(Format.number($0.grams))]"
     }
-    return "{\"brew\": \"\(brew)\", \"samples\": [\(pairs.joined(separator: ", "))]}"
+    return "[\(pairs.joined(separator: ", "))]"
   }
 
   /// Hundredths of a second. The scale reports about ten times a second, so
