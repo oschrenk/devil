@@ -4,6 +4,11 @@ public extension BrewRecord {
   /// The readings, and the facts about the brew that produced them, so the
   /// file explains itself to whatever reads it next.
   ///
+  /// The file does not name its own brew: it is called after the minute the
+  /// brew started, so a `brew` field inside would be the filename written
+  /// twice. Nor does it say whether the brew finished, which is a fact about
+  /// the brew rather than about the readings.
+  ///
   /// The facts are a copy. The markdown holds the same numbers and stays the
   /// record: it is the one you edit, and the one the app reads back. Nothing
   /// here is read back, so the two cannot drift apart through this file. Edit
@@ -15,7 +20,6 @@ public extension BrewRecord {
   /// brew was before the wall of numbers.
   func json(trace: PourTrace) -> String {
     var fields: [String] = []
-    fields.append(Self.field("brew", stamp.stem))
     fields.append(Self.field("brewed", stamp.timestamp))
     fields.append(Self.field("recipe", recipe))
     fields.append("\"servings\": \(servings)")
@@ -29,7 +33,6 @@ public extension BrewRecord {
     fields.append("\"temperatureTarget\": \(Format.number(temperatureTarget))")
     fields.append("\"beakerA\": \(Format.number(beakerA))")
     fields.append("\"beakerB\": \(Format.number(beakerB))")
-    fields.append("\"finished\": \(finished)")
     fields.append("\"samples\": \(trace.samplesJSON)")
     return "{\(fields.joined(separator: ", "))}"
   }

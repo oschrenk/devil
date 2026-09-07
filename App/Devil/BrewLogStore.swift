@@ -56,7 +56,7 @@ struct BrewLogStore {
     guard record.trace != nil,
           let text = try? String(contentsOf: trace(for: record.stamp.stem), encoding: .utf8)
     else { return nil }
-    return PourTrace.parse(json: text)?.trace
+    return PourTrace.parse(json: text)
   }
 
   /// What a share sheet hands over.

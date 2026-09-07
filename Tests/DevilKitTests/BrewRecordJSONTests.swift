@@ -19,7 +19,6 @@ struct BrewRecordJSONTests {
   /// why it repeats what the markdown already says.
   @Test("The sidecar states what the brew was")
   func statesTheFacts() {
-    #expect(json.contains("\"brew\": \"2026-09-06T0714\""))
     #expect(json.contains("\"brewed\": \"2026-09-06T07:14:00+02:00\""))
     #expect(json.contains("\"recipe\": \"Hario Switch, Water and Temp Managed\""))
     #expect(json.contains("\"servings\": 1"))
@@ -33,7 +32,6 @@ struct BrewRecordJSONTests {
     #expect(json.contains("\"temperatureTarget\": 75"))
     #expect(json.contains("\"beakerA\": 107"))
     #expect(json.contains("\"beakerB\": 18"))
-    #expect(json.contains("\"finished\": true"))
   }
 
   /// Thousands of times longer than everything above it, so a reader opening
@@ -41,17 +39,21 @@ struct BrewRecordJSONTests {
   @Test("The readings come last")
   func samplesLast() throws {
     let samples = try #require(json.range(of: "\"samples\""))
-    for name in ["brew", "recipe", "dose", "grinder", "finished"] {
+    for name in ["brewed", "recipe", "dose", "grinder", "beakerB"] {
       #expect(try #require(json.range(of: "\"\(name)\"")?.lowerBound) < samples.lowerBound)
     }
   }
 
-  @Test("A brew that stopped early says so")
-  func unfinished() {
+  /// The filename is the brew's name, and whether it finished is a fact
+  /// about the brew rather than about the readings.
+  @Test("The sidecar leaves out what it would be repeating")
+  func leavesOutTheDuplicates() {
     var early = record
     early.finished = false
 
-    #expect(early.json(trace: PourTrace()).contains("\"finished\": false"))
+    #expect(!json.contains("\"brew\":"))
+    #expect(!json.contains("finished"))
+    #expect(!early.json(trace: PourTrace()).contains("finished"))
   }
 
   /// A gear name with a quote in it would otherwise end the string early and
@@ -68,17 +70,17 @@ struct BrewRecordJSONTests {
     #expect(json.contains("\"filter\": \"back\\\\slash\""))
   }
 
-  /// The reader looks for `"brew"`, and three other names start with those
-  /// letters. The quotes are what keep them apart.
-  @Test("The reader picks the brew rather than a field that starts like it")
-  func brewNotBrewed() {
+  /// Fifteen fields sit above the readings, and the reader walks past all of
+  /// them to reach the ones it wants.
+  @Test("The readings come back out from under the facts")
+  func readsPastTheFacts() {
     var trace = PourTrace()
     trace.append(seconds: 0.1, grams: 0.4)
+    trace.append(seconds: 0.2, grams: 1.1)
 
     let parsed = PourTrace.parse(json: record.json(trace: trace))
 
-    #expect(parsed?.brew == "2026-09-06T0714")
-    #expect(parsed?.trace.samples.count == 1)
+    #expect(parsed?.samples.map(\.grams) == [0.4, 1.1])
   }
 
   @Test("The facts add little to the size of a whole brew")

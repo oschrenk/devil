@@ -36,14 +36,14 @@ public extension PourTrace {
   /// Reads a sidecar back, and `nil` for anything that is not one.
   ///
   /// Hand-written rather than `JSONDecoder`, because `DevilKit` has no
-  /// `Foundation`. It accepts the shape `json(brew:)` writes and refuses the
+  /// `Foundation`. It accepts the shape the writer produces and refuses the
   /// rest rather than guessing at it.
-  static func parse(json: String) -> (brew: String, trace: PourTrace)? {
-    guard let brew = string(named: "brew", in: json),
-          let body = samplesBody(in: json),
-          let trace = trace(from: body)
-    else { return nil }
-    return (brew, trace)
+  ///
+  /// Only the readings are read. Everything else in the file is a copy of
+  /// what the markdown already says, and the markdown is the record.
+  static func parse(json: String) -> PourTrace? {
+    guard let body = samplesBody(in: json) else { return nil }
+    return trace(from: body)
   }
 
   /// What sits between the brackets of the `samples` array.
@@ -74,15 +74,6 @@ public extension PourTrace {
       trace.append(seconds: seconds, grams: grams)
     }
     return trace
-  }
-
-  private static func string(named key: String, in json: String) -> String? {
-    guard let label = json.range(of: "\"\(key)\""),
-          let colon = json[label.upperBound...].firstIndex(of: ":"),
-          let open = json[json.index(after: colon)...].firstIndex(of: "\""),
-          let close = json[json.index(after: open)...].firstIndex(of: "\"")
-    else { return nil }
-    return String(json[json.index(after: open) ..< close])
   }
 }
 

@@ -5,9 +5,6 @@ import Testing
 struct PourTraceJSONTests {
   /// A sidecar for a trace, so these stay about the readings. The facts
   /// written beside them are `BrewRecordJSONTests`.
-  ///
-  /// The brew names itself after the minute it started, so it is always
-  /// `2026-09-06T0714` here.
   private func json(_ trace: PourTrace) -> String {
     BrewRecord.of(
       settings: BrewSettings(),
@@ -33,9 +30,7 @@ struct PourTraceJSONTests {
     let original = trace(count: 40)
 
     let parsed = PourTrace.parse(json: json(original))
-
-    #expect(parsed?.brew == "2026-09-06T0714")
-    #expect(parsed?.trace.samples == original.samples)
+    #expect(parsed?.samples == original.samples)
   }
 
   @Test("A brew with no readings writes an empty list")
@@ -43,8 +38,7 @@ struct PourTraceJSONTests {
     let json = json(PourTrace())
 
     #expect(json.contains("\"samples\": []"))
-    #expect(PourTrace.parse(json: json)?.trace.samples.isEmpty == true)
-    #expect(PourTrace.parse(json: json)?.brew == "2026-09-06T0714")
+    #expect(PourTrace.parse(json: json)?.samples.isEmpty == true)
   }
 
   /// Pairs rather than objects, because a brew is two thousand readings.
@@ -62,14 +56,14 @@ struct PourTraceJSONTests {
 
     let parsed = PourTrace.parse(json: json)
 
-    #expect(parsed?.trace.samples.map(\.seconds) == [1, 2])
+    #expect(parsed?.samples.map(\.seconds) == [1, 2])
   }
 
   @Test("Whitespace between the numbers makes no difference")
   func tolerantOfSpacing() {
     let json = "{\"brew\": \"b\",\n  \"samples\": [\n    [0.1, 0.4],\n    [0.2, 1.1]\n  ]\n}"
 
-    #expect(PourTrace.parse(json: json)?.trace.samples.count == 2)
+    #expect(PourTrace.parse(json: json)?.samples.count == 2)
   }
 
   /// A half-written file must not throw its way into the app.
@@ -94,8 +88,8 @@ struct PourTraceJSONTests {
 
     let parsed = PourTrace.parse(json: json(original))
 
-    #expect(parsed?.trace.samples.first?.seconds == 12.42)
-    #expect(parsed?.trace.samples.first?.grams == 102.4)
+    #expect(parsed?.samples.first?.seconds == 12.42)
+    #expect(parsed?.samples.first?.grams == 102.4)
   }
 
   @Test("A reading keeps the one decimal the scale reports")
@@ -106,7 +100,7 @@ struct PourTraceJSONTests {
 
     let parsed = PourTrace.parse(json: json(original))
 
-    #expect(parsed?.trace.samples == original.samples)
+    #expect(parsed?.samples == original.samples)
     #expect(json(original).contains("[12.3, 102.4]"))
     #expect(json(original).contains("[12.4, -3.5]"))
   }
@@ -129,8 +123,8 @@ struct PourTraceJSONTests {
 
     // 1.236 rounds up to 1.24, so 1.244 is the one that collides and goes.
     #expect(original.samples.count == 3)
-    #expect(parsed?.trace.samples.map(\.seconds) == [1.23, 1.24])
-    #expect(parsed?.trace.samples.map(\.grams) == [10, 20])
+    #expect(parsed?.samples.map(\.seconds) == [1.23, 1.24])
+    #expect(parsed?.samples.map(\.grams) == [10, 20])
   }
 
   /// A tenth of a gram is what the scale resolves, so nothing finer is real.
@@ -142,6 +136,6 @@ struct PourTraceJSONTests {
 
     let parsed = PourTrace.parse(json: json(original))
 
-    #expect(parsed?.trace.samples.map(\.grams) == [102.4, 102.5])
+    #expect(parsed?.samples.map(\.grams) == [102.4, 102.5])
   }
 }
