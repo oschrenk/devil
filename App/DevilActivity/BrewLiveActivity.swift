@@ -11,7 +11,6 @@ struct BrewLiveActivity: Widget {
   var body: some WidgetConfiguration {
     ActivityConfiguration(for: BrewAttributes.self) { context in
       LockScreenView(context: context)
-        .activityBackgroundTint(.black.opacity(0.35))
     } dynamicIsland: { context in
       DynamicIsland {
         DynamicIslandExpandedRegion(.leading) {
@@ -51,24 +50,33 @@ private struct LockScreenView: View {
   let context: ActivityViewContext<BrewAttributes>
 
   var body: some View {
-    HStack(alignment: .top, spacing: 14) {
+    // The clock leads, at roughly twice the size of anything else. The
+    // region is about 160 points tall and cannot be made bigger, so what
+    // reads at arm's length has to win the space rather than share it.
+    HStack(alignment: .center, spacing: 16) {
+      BrewClock(context: context)
+        .font(.system(size: 44, weight: .semibold, design: .rounded))
+        .monospacedDigit()
+        .minimumScaleFactor(0.7)
+        .lineLimit(1)
+
       VStack(alignment: .leading, spacing: 4) {
-        Text(context.state.stepTitle)
-          .font(.headline)
+        HStack(spacing: 6) {
+          Text(context.state.stepTitle)
+            .font(.headline)
+            .lineLimit(1)
+          SwitchLabel(isOpen: context.state.switchIsOpen)
+        }
         Text(context.state.instruction)
           .font(.subheadline)
           .foregroundStyle(.secondary)
           .lineLimit(2)
+          .minimumScaleFactor(0.8)
       }
-      Spacer(minLength: 8)
-      VStack(alignment: .trailing, spacing: 4) {
-        BrewClock(context: context)
-          .font(.title.monospacedDigit())
-          .fontWeight(.semibold)
-        SwitchLabel(isOpen: context.state.switchIsOpen)
-      }
+      .frame(maxWidth: .infinity, alignment: .leading)
     }
-    .padding()
+    .padding(.horizontal, 18)
+    .padding(.vertical, 14)
   }
 }
 
@@ -95,12 +103,11 @@ private struct SwitchLabel: View {
   let isOpen: Bool
 
   var body: some View {
-    Label(
-      isOpen ? "Open" : "Closed",
-      systemImage: isOpen ? "arrow.up.circle.fill" : "arrow.down.circle.fill"
-    )
-    .font(.caption)
-    .foregroundStyle(isOpen ? .green : .orange)
+    // The word alone. An icon and a word at caption size in a strip this
+    // short is two things to read where one will do.
+    Text(isOpen ? "open" : "closed")
+      .font(.caption.weight(.semibold))
+      .foregroundStyle(isOpen ? .green : .orange)
   }
 }
 

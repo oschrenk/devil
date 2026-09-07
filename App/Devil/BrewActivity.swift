@@ -73,6 +73,16 @@ final class BrewActivity {
     }
   }
 
+  /// One line, not all of them.
+  ///
+  /// Joining every instruction gave `Close the switch, Pour 50 g over 15s,
+  /// 3.3 g/s`, which is longer than the Lock Screen is wide. The pour is the
+  /// line worth reading; the switch is a badge beside it already.
+  private static func line(recipe: Recipe, at progress: BrewProgress) -> String {
+    let lines = recipe.instructions(for: progress.step)
+    return lines.first { $0.hasPrefix("Pour") } ?? lines.last ?? ""
+  }
+
   private func state(
     recipe: Recipe,
     at progress: BrewProgress,
@@ -80,7 +90,7 @@ final class BrewActivity {
   ) -> BrewAttributes.ContentState {
     BrewAttributes.ContentState(
       stepTitle: progress.step.title,
-      instruction: recipe.instructions(for: progress.step).joined(separator: ", "),
+      instruction: Self.line(recipe: recipe, at: progress),
       switchIsOpen: progress.step.switchPosition == .open,
       heldAtSeconds: heldAt
     )
