@@ -23,7 +23,8 @@ A complex Switch recipe that does **three things at once**:
 - **Roast target**: Medium
 - **Brew water composition**: 50 % tap + 50 % demineralized, exactly
 - **Initial brew temp**: 92 °C
-- **Kettle temp at the last pour**: ~85.5 °C, measured after it cools through the brew
+- **Kettle temp at the last pour**: ~85.5 °C for one cup, measured after it cools through the brew.
+  A larger batch cools less, because there is more of it: about 87 °C at two cups and 89 °C at five.
 - **Mid-brew temp target**: 75 °C
 - **Total brew time**: ~3:15, observed
 - **Preheat kettle setting**: 96 °C (max usable at Guatemala City altitude before bubbling)

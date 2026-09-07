@@ -13,14 +13,59 @@ public enum Scaling {
   /// force and this is where it starts.
   public static let roomTemperature = 20.0
 
-  /// How far the kettle falls between the first pour and the last.
+  /// How far the kettle falls between the first pour and the cold add, at one
+  /// serving, from 92 °C into a 20 °C room.
   ///
-  /// Measured once: 92 °C set, 85.5 °C at the last pour. Held constant when
-  /// the brew temperature moves, because one reading cannot show whether the
-  /// drop scales with the gap to the room. It is also held constant across
-  /// servings, which is what the spreadsheet does, even though a bigger batch
-  /// must cool more slowly.
-  public static let temperatureDropDuringBrew = 6.5
+  /// The one measurement everything below is anchored to: 92 set, 85.5 when
+  /// the cold water goes in. The spreadsheet types 85.5 into every row, at
+  /// every batch size, which cannot be right for the reason `temperatureDrop`
+  /// explains.
+  public static let referenceDrop = 6.5
+
+  /// The kettle body, as the grams of water that would hold the same heat.
+  ///
+  /// The spreadsheet weighs the Fellow at 757 g empty. Stainless holds about
+  /// an eighth of what water does gram for gram, so the body damps the brew
+  /// like another 90 g in the kettle.
+  ///
+  /// It matters because it is not small. At one serving the kettle holds
+  /// about 150 g of water on average, so the body is a third of what has to
+  /// cool, and leaving it out would exaggerate how much a bigger batch helps.
+  public static let kettleThermalMass = 90.0
+
+  /// What the kettle holds on average between the first pour and the cold
+  /// add, as a share of the brew water.
+  ///
+  /// It starts full and is nearly empty by the cold add. The share is the
+  /// same at every size, because the tap, the floor and the pours are all
+  /// fractions of the water, so one number covers all five.
+  public static let kettleShareOfWater = 0.602
+
+  /// How far the kettle falls before the cold water goes in.
+  ///
+  /// Newton's law, near enough. A body loses heat in proportion to how far
+  /// above the room it is, and warms slowly in proportion to how much there
+  /// is of it. Over a drop this small the curve is close to a straight line,
+  /// so the drop scales with the gap to the room and against the mass.
+  ///
+  /// Two things follow that a fixed 6.5 got wrong. A kettle set lower falls
+  /// less, because it is closer to the room to begin with. And a bigger batch
+  /// falls less, because there is more of it to cool: five servings hold
+  /// three times the water of one.
+  ///
+  /// One measurement stretched by physics, which is not the same as five
+  /// measurements. Brewing two and four with a thermometer would replace this
+  /// with something better, and `DEVIL-38` is where that goes.
+  public static func temperatureDrop(
+    water: Double,
+    brewTemperature: Double,
+    room: Double = roomTemperature
+  ) -> Double {
+    let mass = kettleShareOfWater * water + kettleThermalMass
+    let reference = kettleShareOfWater * Scaling.water(servings: 1) + kettleThermalMass
+    let gap = (brewTemperature - room) / (92 - roomTemperature)
+    return referenceDrop * gap * (reference / mass)
+  }
 
   /// Coffee, in grams.
   ///

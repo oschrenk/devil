@@ -72,9 +72,34 @@ struct ScalingTests {
     #expect(recipe.dose == row.dose)
     #expect(recipe.waterThroughBed == row.water)
     #expect(recipe.kettleFill.tap == row.tap)
-    #expect(recipe.kettleFill.demineralized == row.beakerA)
-    #expect(recipe.cooler.amount == row.beakerB)
     #expect(recipe.finish == row.finish)
+
+    // The beakers agree at one serving and part company after it, on purpose.
+    // The sheet types 85.5 into every row, so its cold water is sized as if a
+    // five-cup kettle cooled as fast as a one-cup kettle. `temperatureDrop`
+    // says it does not, and the deviation below is that disagreement.
+    if row.servings == 1 {
+      #expect(recipe.kettleFill.demineralized == row.beakerA)
+      #expect(recipe.cooler.amount == row.beakerB)
+    } else {
+      #expect(recipe.cooler.amount > row.beakerB)
+      #expect(recipe.kettleFill.demineralized < row.beakerA)
+    }
+  }
+
+  /// What the sheet would have said if it had let the kettle cool by size.
+  ///
+  /// Kept as a number rather than a direction, so a change to the cooling
+  /// model has to be looked at rather than absorbed.
+  @Test("The cold water grows where the sheet held it flat")
+  func deviationFromTheSheet() {
+    let cooling = (1 ... 5).map {
+      Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: $0)).cooler.amount
+    }
+
+    #expect(cooling == [12, 20.5, 29, 37.5, 46])
+    // The sheet: 12, 18.5, 24, 30.5, 36.
+    #expect(cooling[4] - 36 == 10)
   }
 
   /// The property the whole recipe turns on, at every size.
@@ -141,6 +166,8 @@ struct ScalingTests {
 
 @Suite("Temperature as a control")
 struct TemperatureSettingTests {
+  /// The drop is no longer a fixed 6.5, so 88 does not land on 81.5. A kettle
+  /// set closer to the room has less to lose, and falls about 6.1 instead.
   @Test("A cooler brew still lands the last pour on target")
   func coolerBrew() {
     let recipe = Recipe.switchWaterAndTempManaged(
@@ -148,7 +175,8 @@ struct TemperatureSettingTests {
     )
 
     #expect(recipe.brewTemperature == 88)
-    #expect(recipe.kettleTemperatureAtLastPour == 81.5)
+    #expect(recipe.kettleTemperatureAtLastPour > 81.5)
+    #expect(recipe.kettleTemperatureAtLastPour < 88)
     #expect(abs(recipe.kettleTemperatureAfterCooler - 75) < 0.5)
   }
 
@@ -290,5 +318,58 @@ struct RatioTests {
     let hopeless = Recipe.switchWaterAndTempManaged(for: BrewSettings(roomTemperature: 80))
 
     #expect(hopeless.cooler.amount == 0)
+  }
+
+  /// The one measurement everything else is stretched from: 92 set, 85.5 when
+  /// the cold water goes in, at one serving into a 20 degree room.
+  @Test("One serving still drops the measured 6.5")
+  func anchoredToTheMeasurement() {
+    let drop = Scaling.temperatureDrop(water: Scaling.water(servings: 1), brewTemperature: 92)
+
+    #expect(abs(drop - Scaling.referenceDrop) < 0.001)
+    #expect(abs(Recipe.switchWaterAndTempManaged.kettleTemperatureAtLastPour - 85.5) < 0.001)
+  }
+
+  /// More water is more to cool, so a bigger batch falls less. The
+  /// spreadsheet types 85.5 into every row, which cannot be right.
+  @Test("A bigger batch falls less")
+  func biggerBatchesFallLess() throws {
+    let drops = (1 ... 5).map {
+      Scaling.temperatureDrop(water: Scaling.water(servings: $0), brewTemperature: 92)
+    }
+
+    for (bigger, smaller) in zip(drops, drops.dropFirst()) {
+      #expect(smaller < bigger)
+    }
+    #expect(try #require(drops.last) > 2)
+  }
+
+  /// A kettle set lower starts closer to the room, so it has less to lose.
+  @Test("A cooler kettle falls less")
+  func coolerKettleFallsLess() {
+    let water = Scaling.water(servings: 1)
+
+    #expect(
+      Scaling.temperatureDrop(water: water, brewTemperature: 85)
+        < Scaling.temperatureDrop(water: water, brewTemperature: 92)
+    )
+    #expect(
+      Scaling.temperatureDrop(water: water, brewTemperature: 96)
+        > Scaling.temperatureDrop(water: water, brewTemperature: 92)
+    )
+  }
+
+  /// A kettle already at room temperature has nothing to lose.
+  @Test("A kettle at room temperature does not fall")
+  func nothingToLose() {
+    #expect(Scaling.temperatureDrop(water: 250, brewTemperature: 20, room: 20) == 0)
+  }
+
+  /// The body is a third of what has to cool at one serving, so leaving it
+  /// out would exaggerate how much a bigger batch helps.
+  @Test("The kettle body counts as mass")
+  func theKettleCounts() {
+    #expect(Scaling.kettleThermalMass == 90)
+    #expect(Scaling.kettleShareOfWater * Scaling.water(servings: 1) < 2 * Scaling.kettleThermalMass)
   }
 }

@@ -28,7 +28,11 @@ public extension Recipe {
   static func switchWaterAndTempManaged(for settings: BrewSettings) -> Recipe {
     let mix = Mix(
       water: Scaling.water(servings: settings.servings),
-      hot: settings.brewTemperature - Scaling.temperatureDropDuringBrew,
+      hot: settings.brewTemperature - Scaling.temperatureDrop(
+        water: Scaling.water(servings: settings.servings),
+        brewTemperature: settings.brewTemperature,
+        room: settings.roomTemperature
+      ),
       target: settings.temperatureTarget,
       room: settings.roomTemperature
     )
