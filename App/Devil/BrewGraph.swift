@@ -10,6 +10,8 @@ import SwiftUI
 /// there are two hands.
 struct BrewGraph: View {
   let trace: PourTrace
+  /// The pour the recipe intended, for this brew's size.
+  let ideal: [PourSample]
   let total: Double
   let ceiling: Double
 
@@ -30,12 +32,23 @@ struct BrewGraph: View {
 
   var body: some View {
     Chart {
+      // The pour the recipe intends, under the one you are making. Drawn
+      // first so a real pour sits on top of it rather than behind it.
+      ForEach(ideal) { point in
+        LineMark(
+          x: .value("Time", point.seconds),
+          y: .value("Weight", point.grams),
+          series: .value("Pour", "ideal")
+        )
+        .foregroundStyle(.red.opacity(0.55))
+        .lineStyle(StrokeStyle(lineWidth: 1.5))
+      }
       ForEach(drawn.indices, id: \.self) { index in
         ForEach(drawn[index]) { sample in
           LineMark(
             x: .value("Time", sample.seconds),
             y: .value("Weight", sample.grams),
-            series: .value("Pour", index)
+            series: .value("Pour", "actual \(index)")
           )
         }
       }

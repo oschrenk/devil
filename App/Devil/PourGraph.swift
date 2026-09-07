@@ -27,6 +27,17 @@ struct PourGraph: View {
       // The recipe's phases, dashed so they cannot be mistaken for the time
       // scale. Solid and unnumbered they read as ticks whose labels went
       // missing, which is exactly how they were read.
+      // The pour the recipe intends, under the one you are making. Drawn
+      // first so a real pour sits on top of it rather than behind it.
+      ForEach(recipe.idealPour) { point in
+        LineMark(
+          x: .value("Time", point.seconds),
+          y: .value("Weight", point.grams),
+          series: .value("Pour", "ideal")
+        )
+        .foregroundStyle(.red.opacity(0.55))
+        .lineStyle(StrokeStyle(lineWidth: 1.5))
+      }
       ForEach(recipe.steps, id: \.start) { step in
         RuleMark(x: .value("Time", Double(step.start.seconds)))
           .foregroundStyle(.quaternary)
@@ -39,7 +50,7 @@ struct PourGraph: View {
             y: .value("Weight", sample.grams),
             // Each stretch is its own series, so a scale that dropped out
             // draws as the hole it was rather than as a steady pour across it.
-            series: .value("Pour", index)
+            series: .value("Pour", "actual \(index)")
           )
         }
       }

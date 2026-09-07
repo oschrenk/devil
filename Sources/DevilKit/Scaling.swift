@@ -62,6 +62,25 @@ public enum Scaling {
     lastPour(water: water) - hotShareOfLastPour(water: water, hot: hot, target: target)
   }
 
+  /// How long the bloom pour takes.
+  ///
+  /// Fixed, not derived from a rate. The schedule is the same clock at every
+  /// size, so the swirl lands at 0:15 whether the bloom is 50 grams or 112,
+  /// and the water has to be in by then. A constant rate would push the pour
+  /// past its own swirl at four servings.
+  ///
+  /// It follows that the rate rises with the size, which is what pouring a
+  /// bigger bloom into a bigger bed actually looks like.
+  public static let bloomSeconds = 15.0
+
+  /// Grams a second, taken from the bloom and used for the pours after it.
+  ///
+  /// One measured pour, applied to the rest. The later pours have no marker
+  /// to time them against, so this is the honest guess until one exists.
+  public static func pourRate(servings: Int) -> Double {
+    pours(water: water(servings: servings))[0] / bloomSeconds
+  }
+
   /// How long the brew takes, observed rather than derived.
   ///
   /// The spreadsheet recorded a finish for the first four sizes and stopped.

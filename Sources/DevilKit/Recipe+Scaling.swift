@@ -53,16 +53,38 @@ public extension Recipe {
     target: Double
   ) -> [Step] {
     let pours = Scaling.pours(water: water)
+    let rate = Scaling.pourRate(servings: settings.servings)
 
-    var steps: [Step] = [
+    var steps = pouring(pours: pours, rate: rate, water: water, hot: hot, target: target)
+
+    // Past the sizes the spreadsheet timed there is no finish to show, so the
+    // schedule stops at the drain rather than inventing one.
+    if let finish = Scaling.finish(servings: settings.servings) {
+      steps.append(
+        Step(start: finish, title: "Done", switchPosition: .open, actions: [.finish])
+      )
+    }
+    return steps
+  }
+
+  /// The steps up to the drain, which are the same clock at every size.
+  private static func pouring(
+    pours: [Double],
+    rate: Double,
+    water: Double,
+    hot: Double,
+    target: Double
+  ) -> [Step] {
+    [
       Step(
         start: BrewTime(minutes: 0, seconds: 0),
         title: "Bloom",
         switchPosition: .closed,
-        actions: [.pour(grams: pours[0])]
+        actions: [.pour(grams: pours[0])],
+        pourSeconds: Scaling.bloomSeconds
       ),
       Step(
-        start: BrewTime(minutes: 0, seconds: 10),
+        start: BrewTime(minutes: 0, seconds: 15),
         title: "Swirl",
         switchPosition: .closed,
         actions: [.swirl]
@@ -72,13 +94,15 @@ public extension Recipe {
         title: "Pour 2",
         // Open the switch first, then pour.
         switchPosition: .open,
-        actions: [.pour(grams: pours[1])]
+        actions: [.pour(grams: pours[1])],
+        pourSeconds: pours[1] / rate
       ),
       Step(
         start: BrewTime(minutes: 1, seconds: 0),
         title: "Pour 3",
         switchPosition: .open,
-        actions: [.pour(grams: pours[2])]
+        actions: [.pour(grams: pours[2])],
+        pourSeconds: pours[2] / rate
       ),
       Step(
         start: BrewTime(minutes: 1, seconds: 45),
@@ -89,7 +113,8 @@ public extension Recipe {
           .addCooler(grams: Scaling.beakerB(water: water, hot: hot, target: target)),
           .pour(grams: pours[3]),
           .swirl,
-        ]
+        ],
+        pourSeconds: pours[3] / rate
       ),
       Step(
         start: BrewTime(minutes: 2, seconds: 30),
@@ -98,14 +123,5 @@ public extension Recipe {
         actions: [.drain]
       ),
     ]
-
-    // Past the sizes the spreadsheet timed there is no finish to show, so the
-    // schedule stops at the drain rather than inventing one.
-    if let finish = Scaling.finish(servings: settings.servings) {
-      steps.append(
-        Step(start: finish, title: "Done", switchPosition: .open, actions: [.finish])
-      )
-    }
-    return steps
   }
 }

@@ -20,6 +20,12 @@ struct BrewDetailView: View {
     _notes = State(initialValue: brew.notes)
   }
 
+  /// Rebuilt at the size this brew was, so the intended pour drawn under it
+  /// is the one that was intended that morning.
+  private var recipe: Recipe {
+    .switchWaterAndTempManaged(for: BrewSettings(servings: brew.servings))
+  }
+
   var body: some View {
     Form {
       Section("Brewed") {
@@ -41,7 +47,8 @@ struct BrewDetailView: View {
         Section("Pour") {
           BrewGraph(
             trace: pour,
-            total: Double(Recipe.switchWaterAndTempManaged.totalTime.seconds),
+            ideal: recipe.idealPour,
+            total: Double(recipe.totalTime.seconds),
             ceiling: brew.water
           )
           .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))

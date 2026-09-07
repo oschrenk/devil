@@ -120,8 +120,9 @@ To skip the kettle refill between preheat and brew:
 
 - Switch **closed** (down)
 - Pour 50 g of 92 °C water for an immersion bloom
+- Take about 15 seconds over it, so the water is in before the swirl
 
-**~0:10 — Swirl**
+**0:15 — Swirl**
 
 - Switch still closed
 - Brief swirl to settle the slurry

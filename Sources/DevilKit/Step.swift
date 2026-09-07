@@ -29,17 +29,27 @@ public struct Step: Equatable, Sendable {
   public var title: String
   public var switchPosition: SwitchPosition
   public var actions: [Action]
+  /// How long the pour itself takes.
+  ///
+  /// The recipe says when a pour starts and never said how long it runs, so
+  /// there was no ideal to draw a real pour against. Nothing on screen sets
+  /// this: it is the shape the recipe intends, not a number to dial.
+  ///
+  /// Zero on a step that pours nothing.
+  public var pourSeconds: Double
 
   public init(
     start: BrewTime,
     title: String,
     switchPosition: SwitchPosition,
-    actions: [Action]
+    actions: [Action],
+    pourSeconds: Double = 0
   ) {
     self.start = start
     self.title = title
     self.switchPosition = switchPosition
     self.actions = actions
+    self.pourSeconds = pourSeconds
   }
 
   /// Water poured onto the bed during this step.

@@ -9,7 +9,7 @@ struct BrewProgressTests {
   /// drip is the app unsure what to do.
   @Test("Every second from 0 to 195 names exactly one step")
   func everySecondHasAStep() throws {
-    let boundaries = [0, 10, 30, 60, 105, 150, 195]
+    let boundaries = [0, 15, 30, 60, 105, 150, 195]
     let titles = ["Bloom", "Swirl", "Pour 2", "Pour 3", "Cold add and swirl", "Drain", "Done"]
 
     for second in 0 ... 195 {
@@ -33,7 +33,8 @@ struct BrewProgressTests {
 
   @Test("The countdown runs to the next step and stops on the last")
   func countdown() {
-    #expect(recipe.progress(atSeconds: 0).secondsUntilNextStep == 10)
+    #expect(recipe.progress(atSeconds: 0).secondsUntilNextStep == 15)
+    #expect(recipe.progress(atSeconds: 14).secondsUntilNextStep == 1)
     #expect(recipe.progress(atSeconds: 25).secondsUntilNextStep == 5)
     #expect(recipe.progress(atSeconds: 104).secondsUntilNextStep == 1)
     #expect(recipe.progress(atSeconds: 195).secondsUntilNextStep == nil)

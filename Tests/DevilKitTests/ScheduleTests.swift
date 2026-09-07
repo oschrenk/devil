@@ -32,7 +32,7 @@ struct ScheduleTests {
   func durations() {
     let durations = recipe.steps.map { recipe.duration(of: $0) }
 
-    #expect(durations == [10, 20, 30, 45, 45, 45, nil])
+    #expect(durations == [15, 15, 30, 45, 45, 45, nil])
   }
 
   @Test("The current step is the last one that has started")
