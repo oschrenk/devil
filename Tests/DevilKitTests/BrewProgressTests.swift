@@ -78,7 +78,8 @@ struct InstructionTests {
 
   @Test("The bloom closes the switch before it pours")
   func bloom() {
-    #expect(recipe.instructions(for: recipe.steps[0]) == ["Close the switch", "Pour 50 g"])
+    #expect(recipe.instructions(for: recipe.steps[0])
+      == ["Close the switch", "Pour 50 g over 15s, 3.3 g/s"])
   }
 
   /// The Definition of Done for DEVIL-04 names this string.
@@ -86,13 +87,13 @@ struct InstructionTests {
   func atThirtySeconds() {
     let step = recipe.progress(atSeconds: 30).step
 
-    #expect(recipe.instructions(for: step) == ["Open the switch", "Pour 50 g"])
+    #expect(recipe.instructions(for: step) == ["Open the switch", "Pour 50 g over 15s, 3.3 g/s"])
   }
 
   @Test("A step that does not move the switch does not mention it")
   func switchLineOnlyOnChange() {
     // Pour 3 follows Pour 2, both open.
-    #expect(recipe.instructions(for: recipe.steps[3]) == ["Pour 75 g"])
+    #expect(recipe.instructions(for: recipe.steps[3]) == ["Pour 75 g over 23s, 3.3 g/s"])
     // The swirl follows the bloom, both closed.
     #expect(recipe.instructions(for: recipe.steps[1]) == ["Swirl"])
   }
@@ -104,7 +105,7 @@ struct InstructionTests {
     #expect(recipe.instructions(for: step) == [
       "Close the switch",
       "Add 12 g cold water to the kettle",
-      "Pour 75 g",
+      "Pour 75 g over 23s, 3.3 g/s",
       "Swirl",
     ])
   }
@@ -115,7 +116,7 @@ struct InstructionTests {
     let step = two.progress(atSeconds: 60).step
 
     // 112.5 g keeps its decimal; 75 g does not gain one.
-    #expect(two.instructions(for: step) == ["Pour 112.5 g"])
+    #expect(two.instructions(for: step) == ["Pour 112.5 g over 23s, 5.0 g/s"])
     #expect(Format.grams(75) == "75 g")
     #expect(Format.grams(112.5) == "112.5 g")
   }

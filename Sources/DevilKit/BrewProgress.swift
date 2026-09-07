@@ -63,7 +63,17 @@ public extension Recipe {
     for action in step.actions {
       switch action {
       case let .pour(grams):
-        lines.append("Pour \(Format.grams(grams))")
+        // The seconds and the rate, because a pour is paced rather than
+        // tipped. The weight alone says when to stop and nothing about how
+        // fast to get there, and the rate is what the readout below counts
+        // up against while you pour.
+        if step.pourSeconds > 0 {
+          let over = Int(step.pourSeconds.rounded())
+          let rate = Format.flow(grams / step.pourSeconds)
+          lines.append("Pour \(Format.grams(grams)) over \(over)s, \(rate)")
+        } else {
+          lines.append("Pour \(Format.grams(grams))")
+        }
       case let .addCooler(grams):
         lines.append("Add \(Format.grams(grams)) cold water to the kettle")
       case .swirl:
