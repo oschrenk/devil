@@ -18,6 +18,7 @@ final class BrewDefaults {
     static let microns = "defaultMicrons"
     static let brewTemperature = "defaultBrewTemperature"
     static let temperatureTarget = "defaultTemperatureTarget"
+    static let roomTemperature = "defaultRoomTemperature"
     static let cone = "defaultConePreheat"
     static let vessel = "defaultVesselPreheat"
     static let perCup = "defaultCupPreheat"
@@ -51,6 +52,10 @@ final class BrewDefaults {
     didSet { save(temperatureTarget, Key.temperatureTarget) }
   }
 
+  var roomTemperature: Double {
+    didSet { save(roomTemperature, Key.roomTemperature) }
+  }
+
   var preheat: PreheatPlan {
     didSet {
       store.set(preheat.cone, forKey: Key.cone)
@@ -78,6 +83,7 @@ final class BrewDefaults {
     let standard = BrewSettings.one
     brewTemperature = store.number(Key.brewTemperature) ?? standard.brewTemperature
     temperatureTarget = store.number(Key.temperatureTarget) ?? standard.temperatureTarget
+    roomTemperature = store.number(Key.roomTemperature) ?? standard.roomTemperature
     preheat = PreheatPlan(
       perCup: store.number(Key.perCup) ?? PreheatPlan.standard.perCup,
       vessel: store.number(Key.vessel) ?? PreheatPlan.standard.vessel,
@@ -92,6 +98,7 @@ final class BrewDefaults {
     BrewSettings(
       brewTemperature: brewTemperature,
       temperatureTarget: temperatureTarget,
+      roomTemperature: roomTemperature,
       filter: filter,
       grinder: grinder,
       grindMicrons: microns,

@@ -1,3 +1,24 @@
+/// The four numbers every beaker size is worked out from.
+///
+/// Together rather than as four parameters, because they always travel
+/// together and a function taking all four plus its own arguments is one
+/// nobody can call from memory.
+private struct Mix {
+  let water: Double
+  /// The kettle at the last pour, which is below what it was set to.
+  let hot: Double
+  let target: Double
+  let room: Double
+
+  var beakerA: Double {
+    Scaling.beakerA(water: water, hot: hot, target: target, room: room)
+  }
+
+  var beakerB: Double {
+    Scaling.beakerB(water: water, hot: hot, target: target, room: room)
+  }
+}
+
 public extension Recipe {
   /// The recipe in `RECIPE.md`, built for these settings.
   ///
@@ -5,9 +26,12 @@ public extension Recipe {
   /// Weights and beaker fills come out of `Scaling`, so changing the servings
   /// count cannot leave a pour behind at its old size.
   static func switchWaterAndTempManaged(for settings: BrewSettings) -> Recipe {
-    let water = Scaling.water(servings: settings.servings)
-    let hot = settings.brewTemperature - Scaling.temperatureDropDuringBrew
-    let target = settings.temperatureTarget
+    let mix = Mix(
+      water: Scaling.water(servings: settings.servings),
+      hot: settings.brewTemperature - Scaling.temperatureDropDuringBrew,
+      target: settings.temperatureTarget,
+      room: settings.roomTemperature
+    )
 
     return Recipe(
       name: "Hario Switch, Water and Temp Managed",
@@ -18,16 +42,16 @@ public extension Recipe {
       roast: "Medium",
       dose: Scaling.dose(servings: settings.servings),
       kettleFill: KettleFill(
-        tap: Scaling.tap(water: water),
-        demineralized: Scaling.beakerA(water: water, hot: hot, target: target)
+        tap: Scaling.tap(water: mix.water),
+        demineralized: mix.beakerA
       ),
       brewTemperature: settings.brewTemperature,
-      kettleTemperatureAtLastPour: hot,
+      kettleTemperatureAtLastPour: mix.hot,
       cooler: Cooler(
-        amount: Scaling.beakerB(water: water, hot: hot, target: target),
-        temperature: Scaling.roomTemperature
+        amount: mix.beakerB,
+        temperature: mix.room
       ),
-      temperatureTarget: target,
+      temperatureTarget: mix.target,
       preheat: Preheat(
         // 96 C is the most the kettle manages at this altitude before it
         // bubbles, so it is a ceiling rather than a choice.
@@ -37,7 +61,7 @@ public extension Recipe {
         cone: settings.preheat.cone,
         safety: settings.preheat.safety
       ),
-      steps: schedule(for: settings, water: water, hot: hot, target: target)
+      steps: schedule(for: settings, mix: mix)
     )
   }
 
@@ -46,16 +70,11 @@ public extension Recipe {
 
   /// The pour times never move. Only the weights change with the size, and
   /// only the drawdown changes with the bed.
-  private static func schedule(
-    for settings: BrewSettings,
-    water: Double,
-    hot: Double,
-    target: Double
-  ) -> [Step] {
-    let pours = Scaling.pours(water: water)
+  private static func schedule(for settings: BrewSettings, mix: Mix) -> [Step] {
+    let pours = Scaling.pours(water: mix.water)
     let rate = Scaling.pourRate(servings: settings.servings)
 
-    var steps = pouring(pours: pours, rate: rate, water: water, hot: hot, target: target)
+    var steps = pouring(pours: pours, rate: rate, mix: mix)
 
     // Past the sizes the spreadsheet timed there is no finish to show, so the
     // schedule stops at the drain rather than inventing one.
@@ -68,13 +87,7 @@ public extension Recipe {
   }
 
   /// The steps up to the drain, which are the same clock at every size.
-  private static func pouring(
-    pours: [Double],
-    rate: Double,
-    water: Double,
-    hot: Double,
-    target: Double
-  ) -> [Step] {
+  private static func pouring(pours: [Double], rate: Double, mix: Mix) -> [Step] {
     [
       Step(
         start: BrewTime(minutes: 0, seconds: 0),
@@ -110,7 +123,7 @@ public extension Recipe {
         // Closed again, so the last pour is an immersion.
         switchPosition: .closed,
         actions: [
-          .addCooler(grams: Scaling.beakerB(water: water, hot: hot, target: target)),
+          .addCooler(grams: mix.beakerB),
           .pour(grams: pours[3]),
           .swirl,
         ],

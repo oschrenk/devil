@@ -6,6 +6,11 @@
 /// same integers its ROUNDUP column does, exactly.
 public enum Scaling {
   /// Room temperature, the same figure the spreadsheet uses in every row.
+  ///
+  /// The default rather than the truth. Cold tap in winter is nearer twelve
+  /// and a summer kitchen nearer twenty-four, and the cold share of the last
+  /// pour is sized against this number, so `BrewSettings` carries the one in
+  /// force and this is where it starts.
   public static let roomTemperature = 20.0
 
   /// How far the kettle falls between the first pour and the last.
@@ -52,14 +57,25 @@ public enum Scaling {
   ///
   /// The floor above, plus the share of the last pour that has to arrive hot
   /// for the cold water to land it on target.
-  public static func beakerA(water: Double, hot: Double, target: Double) -> Double {
-    demineralizedFloor(water: water) + hotShareOfLastPour(water: water, hot: hot, target: target)
+  public static func beakerA(
+    water: Double,
+    hot: Double,
+    target: Double,
+    room: Double = roomTemperature
+  ) -> Double {
+    demineralizedFloor(water: water)
+      + hotShareOfLastPour(water: water, hot: hot, target: target, room: room)
   }
 
   /// Beaker B: the rest of the demineralized water, added cold at the last
   /// pour. Its size is what brings that pour to the target.
-  public static func beakerB(water: Double, hot: Double, target: Double) -> Double {
-    lastPour(water: water) - hotShareOfLastPour(water: water, hot: hot, target: target)
+  public static func beakerB(
+    water: Double,
+    hot: Double,
+    target: Double,
+    room: Double = roomTemperature
+  ) -> Double {
+    lastPour(water: water) - hotShareOfLastPour(water: water, hot: hot, target: target, room: room)
   }
 
   /// How long the bloom pour takes.
@@ -102,9 +118,14 @@ public enum Scaling {
 
   /// The hot part of the last pour, sized so that mixing it with the cold
   /// remainder hits the target exactly.
-  static func hotShareOfLastPour(water: Double, hot: Double, target: Double) -> Double {
-    guard hot > roomTemperature, target > roomTemperature else { return lastPour(water: water) }
-    let share = lastPour(water: water) * (target - roomTemperature) / (hot - roomTemperature)
+  static func hotShareOfLastPour(
+    water: Double,
+    hot: Double,
+    target: Double,
+    room: Double = roomTemperature
+  ) -> Double {
+    guard hot > room, target > room else { return lastPour(water: water) }
+    let share = lastPour(water: water) * (target - room) / (hot - room)
     // Rounded to the gram, as the spreadsheet does. Beaker B takes the
     // remainder, so the two still sum to the pour and the kettle still empties.
     return share.rounded()

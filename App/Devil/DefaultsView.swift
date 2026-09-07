@@ -51,13 +51,20 @@ struct DefaultsView: View {
         Text(otherGrinders)
       }
 
-      Section("Temperature") {
+      Section {
         Stepper(value: $defaults.brewTemperature, in: 60 ... 100, step: 1) {
           LabelledValue(label: "Kettle", value: Format.degrees(defaults.brewTemperature))
         }
         Stepper(value: $defaults.temperatureTarget, in: 40 ... 100, step: 1) {
           LabelledValue(label: "Last pour", value: Format.degrees(defaults.temperatureTarget))
         }
+        Stepper(value: $defaults.roomTemperature, in: 0 ... 40, step: 1) {
+          LabelledValue(label: "Room", value: Format.degrees(defaults.roomTemperature))
+        }
+      } header: {
+        Text("Temperature")
+      } footer: {
+        Text("Room is how warm the water you do not heat is. It sizes the cooling water.")
       }
 
       Section {

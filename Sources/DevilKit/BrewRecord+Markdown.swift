@@ -21,6 +21,7 @@ public extension BrewRecord {
     lines.append("filter: \(filter)")
     lines.append("brewTemperature: \(Format.number(brewTemperature))")
     lines.append("temperatureTarget: \(Format.number(temperatureTarget))")
+    lines.append("roomTemperature: \(Format.number(roomTemperature))")
     lines.append("beakerA: \(Format.number(beakerA))")
     lines.append("beakerB: \(Format.number(beakerB))")
     lines.append("finished: \(finished)")
@@ -124,6 +125,7 @@ public extension BrewRecord {
       filter: filter,
       brewTemperature: brewTemperature,
       temperatureTarget: temperatureTarget,
+      roomTemperature: front["roomTemperature"].flatMap(Double.init) ?? Scaling.roomTemperature,
       beakerA: beakerA,
       beakerB: beakerB,
       finished: front["finished"] == "true",

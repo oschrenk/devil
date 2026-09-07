@@ -31,6 +31,7 @@ public extension BrewRecord {
     fields.append(Self.field("filter", filter))
     fields.append("\"brewTemperature\": \(Format.number(brewTemperature))")
     fields.append("\"temperatureTarget\": \(Format.number(temperatureTarget))")
+    fields.append("\"roomTemperature\": \(Format.number(roomTemperature))")
     fields.append("\"beakerA\": \(Format.number(beakerA))")
     fields.append("\"beakerB\": \(Format.number(beakerB))")
     fields.append("\"samples\": \(trace.samplesJSON)")

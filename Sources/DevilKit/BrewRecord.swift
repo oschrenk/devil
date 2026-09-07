@@ -22,6 +22,8 @@ public struct BrewRecord: Equatable, Sendable, Identifiable {
   public var filter: String
   public var brewTemperature: Double
   public var temperatureTarget: Double
+  /// What the unheated water was, which decided how much went in beaker B.
+  public var roomTemperature: Double
   public var beakerA: Double
   public var beakerB: Double
   /// Whether the brew reached its last step, rather than ending early.
@@ -46,6 +48,7 @@ public struct BrewRecord: Equatable, Sendable, Identifiable {
     filter: String,
     brewTemperature: Double,
     temperatureTarget: Double,
+    roomTemperature: Double = Scaling.roomTemperature,
     beakerA: Double,
     beakerB: Double,
     finished: Bool,
@@ -63,6 +66,7 @@ public struct BrewRecord: Equatable, Sendable, Identifiable {
     self.filter = filter
     self.brewTemperature = brewTemperature
     self.temperatureTarget = temperatureTarget
+    self.roomTemperature = roomTemperature
     self.beakerA = beakerA
     self.beakerB = beakerB
     self.finished = finished
@@ -89,6 +93,7 @@ public struct BrewRecord: Equatable, Sendable, Identifiable {
       filter: settings.filter.name,
       brewTemperature: settings.brewTemperature,
       temperatureTarget: settings.temperatureTarget,
+      roomTemperature: settings.roomTemperature,
       beakerA: Scaling.beakerA(
         water: water,
         hot: settings.brewTemperature,

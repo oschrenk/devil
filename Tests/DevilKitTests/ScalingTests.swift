@@ -244,4 +244,51 @@ struct RatioTests {
     #expect(PreheatPlan.standard.fixed == 200)
     #expect(PreheatPlan(perCup: 60, vessel: 40, cone: 120, safety: 30).fixed == 160)
   }
+
+  /// Twenty is where it starts, and the spreadsheet's figure.
+  @Test("Room temperature defaults to twenty")
+  func defaultRoom() {
+    #expect(Scaling.roomTemperature == 20)
+    #expect(BrewSettings().roomTemperature == 20)
+    #expect(Recipe.switchWaterAndTempManaged.cooler.temperature == 20)
+  }
+
+  /// The cold share is sized against the room, so colder water goes further
+  /// and less of it is needed.
+  @Test("Colder water means less of it")
+  func colderRoomNeedsLess() {
+    let warm = Recipe.switchWaterAndTempManaged(for: BrewSettings(roomTemperature: 24))
+    let standard = Recipe.switchWaterAndTempManaged
+    let cold = Recipe.switchWaterAndTempManaged(for: BrewSettings(roomTemperature: 12))
+
+    #expect(cold.cooler.amount < standard.cooler.amount)
+    #expect(standard.cooler.amount < warm.cooler.amount)
+  }
+
+  /// Whatever the room is, the kettle still empties and the bed still takes
+  /// the same water. Only the split between the beakers moves.
+  @Test("The room moves the split and nothing else")
+  func roomOnlyMovesTheSplit() {
+    for room in [8.0, 14, 20, 26, 32] {
+      let recipe = Recipe.switchWaterAndTempManaged(for: BrewSettings(roomTemperature: room))
+      let standard = Recipe.switchWaterAndTempManaged
+
+      #expect(recipe.waterThroughBed == standard.waterThroughBed)
+      #expect(recipe.kettleFill.tap == standard.kettleFill.tap)
+      #expect(recipe.dose == standard.dose)
+      #expect(recipe.cooler.temperature == room)
+      // Beaker A takes what beaker B gives up, so the pour still adds up.
+      let split = recipe.kettleFill.demineralized + recipe.cooler.amount
+      #expect(abs(split - (standard.kettleFill.demineralized + standard.cooler.amount)) < 1)
+    }
+  }
+
+  /// A room at or above the target leaves no cold water able to cool
+  /// anything, so the pour goes in hot rather than dividing by zero.
+  @Test("A room as warm as the target pours everything hot")
+  func roomAtTheTarget() {
+    let hopeless = Recipe.switchWaterAndTempManaged(for: BrewSettings(roomTemperature: 80))
+
+    #expect(hopeless.cooler.amount == 0)
+  }
 }

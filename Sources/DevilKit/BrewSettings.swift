@@ -11,6 +11,12 @@ public struct BrewSettings: Equatable, Sendable {
   public var brewTemperature: Double
   /// What the last pour should reach once the cooler goes in.
   public var temperatureTarget: Double
+  /// How warm the water you are not heating is.
+  ///
+  /// The cold share of the last pour is sized against this, so it decides how
+  /// much goes in beaker B. Cold tap in winter is nearer twelve than twenty,
+  /// and at four servings that is several grams.
+  public var roomTemperature: Double
   /// The paper. Its `defaultGrind` is where `grindSetting` starts.
   public var filter: Filter
   /// Which burrs `grindSetting` counts on.
@@ -30,6 +36,7 @@ public struct BrewSettings: Equatable, Sendable {
     servings: Int = 1,
     brewTemperature: Double = 92,
     temperatureTarget: Double = 75,
+    roomTemperature: Double = Scaling.roomTemperature,
     filter: Filter = .harioV60Natural,
     grinder: Grinder = .oneZpressoKUltra,
     grindMicrons: Double = BrewSettings.defaultMicrons,
@@ -38,6 +45,7 @@ public struct BrewSettings: Equatable, Sendable {
     self.servings = servings
     self.brewTemperature = brewTemperature
     self.temperatureTarget = temperatureTarget
+    self.roomTemperature = roomTemperature
     self.filter = filter
     self.grinder = grinder
     self.grindMicrons = grindMicrons
