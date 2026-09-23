@@ -8,6 +8,7 @@ import SwiftUI
 /// on the main screen and leaves this alone.
 struct DefaultsView: View {
   @Bindable var defaults: BrewDefaults
+  @State private var editingAccount = false
 
   var body: some View {
     Form {
@@ -111,6 +112,35 @@ struct DefaultsView: View {
         Text("Preheat")
       } footer: {
         Text("Cup is per person. The rest are the same however many are drinking.")
+      }
+
+      // Last, and behind a button, because nothing here needs touching. The
+      // base station names its own account and Devil keeps what it said. This
+      // is for the morning that goes wrong, not for setting up.
+      Section {
+        if editingAccount {
+          TextField("Account", text: $defaults.probeAccount)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .keyboardType(.numberPad)
+          Button("Forget it", role: .destructive) {
+            defaults.probeAccount = ""
+            editingAccount = false
+          }
+        } else {
+          LabelledValue(
+            label: "Account",
+            value: defaults.probeAccount.isEmpty ? "not yet known" : defaults.probeAccount
+          )
+          Button("Edit") { editingAccount = true }
+        }
+      } header: {
+        Text("ThermoMaven")
+      } footer: {
+        Text(
+          "The only thing a probe asks for, and the only piece of you in this app. "
+            + "Devil learns it from the base station and keeps it. No brew file records it."
+        )
       }
     }
     .navigationTitle("Defaults")

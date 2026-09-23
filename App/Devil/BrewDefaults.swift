@@ -16,6 +16,7 @@ final class BrewDefaults {
     static let filter = "defaultFilter"
     static let grinder = "defaultGrinder"
     static let drinkVessel = "defaultDrinkVessel"
+    static let probeAccount = "probeAccount"
     static let microns = "defaultMicrons"
     static let brewTemperature = "defaultBrewTemperature"
     static let temperatureTarget = "defaultTemperatureTarget"
@@ -38,6 +39,19 @@ final class BrewDefaults {
 
   var grinder: Grinder {
     didSet { save(grinder.name, Key.grinder) }
+  }
+
+  /// The ThermoMaven account the base station belongs to.
+  ///
+  /// The only piece of you anywhere in this app, and the only thing a
+  /// ThermoMaven wants before it will talk. Learned rather than asked for:
+  /// the base station names it in every receipt, so Devil reads it off the
+  /// first refusal and keeps it.
+  ///
+  /// Kept so a later connection can ask properly the first time, instead of
+  /// being refused once to find out who it is talking to.
+  var probeAccount: String {
+    didSet { save(probeAccount, Key.probeAccount) }
   }
 
   /// What the drink is poured into, so the weigh step opens on the right one.
@@ -87,6 +101,7 @@ final class BrewDefaults {
     let saved = store.number(Key.microns)
     filter = Filter.all.first { $0.name == filterName } ?? Filter.all[0]
     grinder = Grinder.all.first { $0.name == grinderName } ?? Grinder.all[0]
+    probeAccount = store.string(forKey: Key.probeAccount) ?? ""
     let vesselName = store.string(forKey: Key.drinkVessel)
     drinkVessel = Vessel.all.first { $0.name == vesselName } ?? Vessel.all[0]
     microns = saved ?? BrewSettings.defaultMicrons

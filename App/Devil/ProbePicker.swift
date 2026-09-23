@@ -146,3 +146,34 @@ private struct ProbeAdvice: View {
     }
   }
 }
+
+/// The probe's place on the brewing screen.
+///
+/// Below the scale and optional in the same way. Left alone it is one quiet
+/// row, and a brew behaves exactly as it does without a probe.
+struct ProbeSection: View {
+  let probe: ProbeConnection
+  @Binding var picking: Bool
+
+  var body: some View {
+    Section("Probe") {
+      Button { picking = true } label: {
+        ProbeRow(state: probe.state, zone: probe.probe?.zonesCelsius.first)
+      }
+      .tint(.primary)
+      // Shown only while a probe is connected and silent. Waiting has several
+      // causes, and these separate them: no write channel, or nothing
+      // written, or written and refused.
+      if probe.state.isConnected, probe.probe == nil {
+        LabelledValue(label: "Can ask", value: probe.canWrite ? "yes" : "NO")
+        LabelledValue(label: "Sent", value: "\(probe.framesSent)")
+        LabelledValue(label: "Heard", value: "\(probe.framesHeard)")
+        LabelledValue(label: "Account", value: probe.userId ?? "unknown")
+        if let refusal = probe.refusal {
+          LabelledValue(label: "Refused", value: "error \(refusal)")
+        }
+        Button("Ask again") { probe.ask() }
+      }
+    }
+  }
+}

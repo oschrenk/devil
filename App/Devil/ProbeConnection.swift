@@ -32,6 +32,10 @@ enum ProbeState: Equatable {
 /// connected and hands bytes across.
 @Observable
 final class ProbeConnection: NSObject {
+  /// Where the account is kept between launches. Handed in rather than read
+  /// here, so the settings screen and the radio agree on one copy.
+  var defaults: BrewDefaults?
+
   private(set) var state: ProbeState = .noneChosen
   private(set) var found: [FoundScale] = []
   /// The last report, whole. `nil` until three frames have arrived.
@@ -49,7 +53,20 @@ final class ProbeConnection: NSObject {
   private(set) var framesHeard = 0
   /// Learned from a receipt rather than configured. The base station names
   /// the account in every reply, including the ones refusing a command.
-  private(set) var userId: String?
+  /// The account in force. The stored one until the base station corrects it,
+  /// which it does by naming its own in a receipt.
+  var userId: String? {
+    get { remembered ?? learned }
+    set { learned = newValue }
+  }
+
+  private var learned: String?
+
+  private var remembered: String? {
+    let stored = defaults?.probeAccount ?? ""
+    return stored.isEmpty ? nil : stored
+  }
+
   /// The last refusal's code, so a silent row can say why it is silent.
   private(set) var refusal: Int?
 
@@ -269,8 +286,11 @@ extension ProbeConnection: CBPeripheralDelegate {
       refusal = report.refused ? report.cmdData.cmdError : nil
       // The first refusal is the useful one: it names the account, and trust
       // needs the account. Ask again now that we know it.
-      if let learned = report.userId, learned != userId {
-        userId = learned
+      if let named = report.userId, named != userId {
+        userId = named
+        // Kept, so the next connection asks properly the first time rather
+        // than being refused once to find out who it is talking to.
+        defaults?.probeAccount = named
         Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
           self?.ask()
         }

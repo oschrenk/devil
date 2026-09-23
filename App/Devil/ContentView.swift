@@ -150,25 +150,7 @@ struct ContentView: View {
 
         // Below the scale, and optional in the same way. Left alone it is one
         // quiet row and the app behaves exactly as it does without a probe.
-        Section("Probe") {
-          Button { pickingProbe = true } label: {
-            ProbeRow(state: probe.state, zone: probe.probe?.zonesCelsius.first)
-          }
-          .tint(.primary)
-          // Shown only while a probe is connected and silent. Waiting has
-          // several causes, and these separate them: no write channel, or
-          // nothing written, or written and ignored.
-          if probe.state.isConnected, probe.probe == nil {
-            LabelledValue(label: "Can ask", value: probe.canWrite ? "yes" : "NO")
-            LabelledValue(label: "Sent", value: "\(probe.framesSent)")
-            LabelledValue(label: "Heard", value: "\(probe.framesHeard)")
-            LabelledValue(label: "Account", value: probe.userId ?? "unknown")
-            if let refusal = probe.refusal {
-              LabelledValue(label: "Refused", value: "error \(refusal)")
-            }
-            Button("Ask again") { probe.ask() }
-          }
-        }
+        ProbeSection(probe: probe, picking: $pickingProbe)
 
         Section {
           // What to measure out. The first two go in the kettle and boil.
@@ -252,7 +234,10 @@ struct ContentView: View {
       settings.servings = servings
     }
     .task { scale.begin() }
-    .task { probe.begin() }
+    .task {
+      probe.defaults = defaults
+      probe.begin()
+    }
     // A sheet rather than a push, because the timer it follows is a cover and
     // there is no stack underneath to push onto.
     .sheet(item: $notesFor) { brew in
