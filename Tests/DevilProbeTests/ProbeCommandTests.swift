@@ -23,7 +23,7 @@ struct ProbeCommandTests {
     let raw = try #require(Zstd.decompress(package.body, expecting: package.expandedCount))
     let json = try #require(String(bytes: raw, encoding: .utf8))
     #expect(json.contains("\"cmdType\":\"device:status:request\""))
-    #expect(json.contains("\"cmdSeqNo\":\"7\""))
+    #expect(json.contains("\"cmdSeqNo\":7"))
   }
 
   /// The checksum is the difference between reading and writing, and a wrong
@@ -105,11 +105,20 @@ struct ReceiptTests {
   /// be inventing a shape the device never asked for.
   @Test("Trust names the account, and other commands send nothing")
   func trustPayload() {
-    let trust = ProbeCommand.applyTrust.json(id: "a", sequence: 1, userId: "123")
+    let trust = ProbeCommand.applyTrust
+      .json(id: "a", sequence: 1, userId: "123", milliseconds: 1_790_200_155_000)
     #expect(trust.contains("\"userId\":\"123\""))
     #expect(trust.contains("\"mode\":\"direct\""))
     #expect(trust.contains("\"deviceModel\":\"WT11\""))
-    let status = ProbeCommand.statusRequest.json(id: "a", sequence: 1, userId: "123")
+    // A number, not a string, which is how their own builder writes it.
+    #expect(trust.contains("\"cmdSeqNo\":1"))
+    #expect(trust.contains("\"serverTime\":1790200155000"))
+    #expect(trust.contains("\"serverTimeSecond\":1790200155"))
+    #expect(trust.contains("\"deviceType\":\"WT11\""))
+    // Absent rather than empty: their builder passes null.
+    #expect(!trust.contains("protocol"))
+    let status = ProbeCommand.statusRequest
+      .json(id: "a", sequence: 1, userId: "123", milliseconds: 1_790_200_155_000)
     #expect(status.contains("\"cmdData\":{}"))
     #expect(!status.contains("userId"))
   }
