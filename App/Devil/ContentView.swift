@@ -25,6 +25,18 @@ struct ContentView: View {
     return "Cups, \(settings.servings) x \(Format.number(settings.preheat.perCup))"
   }
 
+  /// What the kettle starts at, and what the last pour should reach.
+  private var temperatureSummary: String {
+    "\(recipe.brewTemperature.degrees) / \(recipe.temperatureTarget.degrees)"
+  }
+
+  /// The water through the bed and when it should be done, which is what the
+  /// steps below add up to.
+  private var recipeSummary: String {
+    let time = recipe.finish ?? recipe.totalTime
+    return "\(recipe.waterThroughBed.grams) in \(time.formatted)"
+  }
+
   /// Says where the boil figure comes from, so it can be checked rather than
   /// trusted.
   private var boilBreakdown: String {
@@ -37,78 +49,89 @@ struct ContentView: View {
   var body: some View {
     NavigationStack {
       Form {
-        Section("Brewing") {
+        FoldingSection("Brewing") { isOpen in
           Stepper(value: $settings.servings, in: BrewSettings.servingsRange) {
             LabelledValue(
               label: settings.servings == 1 ? "1 person" : "\(settings.servings) people",
               value: recipe.dose.grams
             )
           }
-          Picker("Filter", selection: $settings.filter) {
-            ForEach(Filter.all) { paper in
-              Text(paper.name).tag(paper)
+          if isOpen {
+            // First, under the dose it belongs to. The ratio is what you check
+            // when you change the number of people, so it reads with that row
+            // rather than three sections further down.
+            LabelledValue(label: "Ratio", value: Format.ratio(recipe.brewRatio))
+            Picker("Filter", selection: $settings.filter) {
+              ForEach(Filter.all) { paper in
+                Text(paper.name).tag(paper)
+              }
+            }
+            Picker("Grinder", selection: $settings.grinder) {
+              ForEach(Grinder.all) { grinder in
+                Text(grinder.name).tag(grinder)
+              }
+            }
+            // Plus and minus move one detent on the grinder in front of you,
+            // not a round number of microns. A click near the middle of a dial
+            // moves the grind several times further than one near an end.
+            Stepper {
+              LabelledValue(
+                label: "Grind",
+                value: settings.grinderCanReach ? dialAndSize : "out of range"
+              )
+            } onIncrement: {
+              settings.grindMicrons = settings.grinder.stepped(settings.grindMicrons, by: 1)
+            } onDecrement: {
+              settings.grindMicrons = settings.grinder.stepped(settings.grindMicrons, by: -1)
             }
           }
-          Picker("Grinder", selection: $settings.grinder) {
-            ForEach(Grinder.all) { grinder in
-              Text(grinder.name).tag(grinder)
+        }
+
+        FoldingSection("Temperature", summary: temperatureSummary) { isOpen in
+          if isOpen {
+            Stepper(value: $settings.brewTemperature, in: 85 ... 96, step: 1) {
+              LabelledValue(label: "Kettle", value: recipe.brewTemperature.degrees)
+            }
+            Stepper(value: $settings.temperatureTarget, in: 65 ... 85, step: 1) {
+              LabelledValue(label: "Last pour", value: recipe.temperatureTarget.degrees)
             }
           }
-          // Plus and minus move one detent on the grinder in front of you,
-          // not a round number of microns. A click near the middle of a dial
-          // moves the grind several times further than one near an end.
-          Stepper {
-            LabelledValue(
-              label: "Grind",
-              value: settings.grinderCanReach ? dialAndSize : "out of range"
-            )
-          } onIncrement: {
-            settings.grindMicrons = settings.grinder.stepped(settings.grindMicrons, by: 1)
-          } onDecrement: {
-            settings.grindMicrons = settings.grinder.stepped(settings.grindMicrons, by: -1)
-          }
         }
-        Section("Temperature") {
-          Stepper(value: $settings.brewTemperature, in: 85 ... 96, step: 1) {
-            LabelledValue(label: "Kettle", value: recipe.brewTemperature.degrees)
-          }
-          Stepper(value: $settings.temperatureTarget, in: 65 ... 85, step: 1) {
-            LabelledValue(label: "Last pour", value: recipe.temperatureTarget.degrees)
+
+        FoldingSection(
+          "Preheat",
+          summary: recipe.preheat.total.millilitres,
+          footer: "Cup is per person. The rest are the same however many are drinking."
+        ) { isOpen in
+          if isOpen {
+            Stepper(value: $settings.preheat.cone, in: 0 ... 400, step: PreheatPlan.step) {
+              LabelledValue(label: "Cone", value: recipe.preheat.cone.millilitres)
+            }
+            Stepper(value: $settings.preheat.vessel, in: 0 ... 300, step: PreheatPlan.step) {
+              LabelledValue(label: "Vessel", value: recipe.preheat.vessel.millilitres)
+            }
+            Stepper(value: $settings.preheat.perCup, in: 0 ... 200, step: PreheatPlan.step) {
+              LabelledValue(label: cupsLabel, value: recipe.preheat.cups.millilitres)
+            }
+            // The slack is not preheat and does not warm anything. It is here
+            // because it is the fourth thing that goes into the boil, and the
+            // boil figure above is the sum of all four.
+            Stepper(value: $settings.preheat.safety, in: 0 ... 100, step: PreheatPlan.step) {
+              LabelledValue(label: "Slack", value: recipe.preheat.safety.millilitres)
+            }
           }
         }
 
-        Section {
-          Stepper(value: $settings.preheat.cone, in: 0 ... 400, step: PreheatPlan.step) {
-            LabelledValue(label: "Cone", value: recipe.preheat.cone.millilitres)
+        // Was `Pours`, and was followed by a section repeating the water and
+        // the finish. Closed, the header says both, so that section went.
+        FoldingSection("Recipe", summary: recipeSummary) { isOpen in
+          if isOpen {
+            ForEach(recipe.steps, id: \.start) { step in
+              StepRow(step: step)
+            }
+            LabelledValue(label: "Through the bed", value: recipe.waterThroughBed.grams)
+            LabelledValue(label: "Finish", value: recipe.finish?.formatted ?? "not timed")
           }
-          Stepper(value: $settings.preheat.vessel, in: 0 ... 300, step: PreheatPlan.step) {
-            LabelledValue(label: "Vessel", value: recipe.preheat.vessel.millilitres)
-          }
-          Stepper(value: $settings.preheat.perCup, in: 0 ... 200, step: PreheatPlan.step) {
-            LabelledValue(label: cupsLabel, value: recipe.preheat.cups.millilitres)
-          }
-          // The slack is not preheat and does not warm anything. It is here
-          // because it is the fourth thing that goes into the boil, and the
-          // boil figure above is the sum of all four.
-          Stepper(value: $settings.preheat.safety, in: 0 ... 100, step: PreheatPlan.step) {
-            LabelledValue(label: "Slack", value: recipe.preheat.safety.millilitres)
-          }
-        } header: {
-          Text("Preheat")
-        } footer: {
-          Text("Cup is per person. The rest are the same however many are drinking.")
-        }
-
-        Section("Pours") {
-          ForEach(recipe.steps, id: \.start) { step in
-            StepRow(step: step)
-          }
-        }
-
-        Section {
-          LabelledValue(label: "Through the bed", value: recipe.waterThroughBed.grams)
-          LabelledValue(label: "Ratio", value: Format.ratio(recipe.brewRatio))
-          LabelledValue(label: "Finish", value: recipe.finish?.formatted ?? "not timed")
         }
 
         // Above `Start brewing` rather than at the top, because the scale is
