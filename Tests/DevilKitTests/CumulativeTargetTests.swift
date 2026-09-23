@@ -3,7 +3,7 @@ import Testing
 
 @Suite("Cumulative target")
 struct CumulativeTargetTests {
-  let recipe = Recipe.switchWaterAndTempManaged
+  let recipe = Recipe.switchWaterAndTempManaged(for: .documented)
 
   /// What the scale should read at the end of each step, which is what turns a
   /// weight readout into an instruction to stop pouring.
@@ -29,7 +29,7 @@ struct CumulativeTargetTests {
 
   @Test("Two servings runs 75, 150, 262.5 then 375")
   func twoServings() {
-    let two = Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: 2))
+    let two = Recipe.switchWaterAndTempManaged(for: BrewSettings.documented(servings: 2))
     let targets = two.steps.map { two.cumulativeTarget(through: $0) }
 
     #expect(targets == [75, 75, 150, 262.5, 375, 375, 375])
@@ -40,7 +40,9 @@ struct CumulativeTargetTests {
   @Test("The final target is the water through the bed, at every size")
   func endsOnTheWholeBrew() throws {
     for servings in 1 ... 5 {
-      let recipe = Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: servings))
+      let recipe = Recipe.switchWaterAndTempManaged(
+        for: BrewSettings.documented(servings: servings)
+      )
       let last = try #require(recipe.steps.max { $0.start < $1.start })
 
       #expect(recipe.cumulativeTarget(through: last) == recipe.waterThroughBed)

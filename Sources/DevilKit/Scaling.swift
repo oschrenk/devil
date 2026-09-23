@@ -20,6 +20,15 @@ public enum Scaling {
   /// the cold water goes in. The spreadsheet types 85.5 into every row, at
   /// every batch size, which cannot be right for the reason `temperatureDrop`
   /// explains.
+  /// What the kettle was set to when `referenceDrop` was measured.
+  ///
+  /// Not a default, and not to be kept in step with one. The 85.5 reading
+  /// came off a kettle set to 92, so this anchors that measurement whatever
+  /// the app happens to start at today. Changing the default kettle
+  /// temperature must leave this alone, or every cooling figure moves for no
+  /// reason anyone recorded.
+  public static let measuredAt = 92.0
+
   public static let referenceDrop = 6.5
 
   /// The kettle body, as the grams of water that would hold the same heat.
@@ -63,7 +72,7 @@ public enum Scaling {
   ) -> Double {
     let mass = kettleShareOfWater * water + kettleThermalMass
     let reference = kettleShareOfWater * Scaling.water(servings: 1) + kettleThermalMass
-    let gap = (brewTemperature - room) / (92 - roomTemperature)
+    let gap = (brewTemperature - room) / (measuredAt - roomTemperature)
     return referenceDrop * gap * (reference / mass)
   }
 

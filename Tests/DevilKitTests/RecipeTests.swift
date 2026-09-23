@@ -5,7 +5,7 @@ import Testing
 /// each other one number at a time.
 @Suite("Hario Switch, Water and Temp Managed")
 struct RecipeTests {
-  let recipe = Recipe.switchWaterAndTempManaged
+  let recipe = Recipe.switchWaterAndTempManaged(for: .documented)
 
   @Test("The settings block")
   func settings() {
@@ -25,7 +25,11 @@ struct RecipeTests {
   func grindDefaultsToTheSize() {
     #expect(recipe.grindSetting == GrindSetting(number: 7, click: 6))
 
-    let abaca = Recipe.switchWaterAndTempManaged(for: BrewSettings(filter: .cafecAbaca))
+    // Varied from the documented recipe, not from today's defaults, so the
+    // comparison below isolates the paper rather than the temperature.
+    var withAbaca = BrewSettings.documented
+    withAbaca.filter = .cafecAbaca
+    let abaca = Recipe.switchWaterAndTempManaged(for: withAbaca)
     #expect(abaca.grindSetting == recipe.grindSetting)
 
     // Swapping paper changes nothing about the water.
@@ -36,9 +40,10 @@ struct RecipeTests {
   /// It is recorded, not used, so it has to be free to move.
   @Test("A grind set by hand overrides the filter and changes nothing else")
   func grindIsAdjustable() {
-    let dialled = Recipe.switchWaterAndTempManaged(
-      for: BrewSettings(filter: .cafecAbaca, grindMicrons: 700)
-    )
+    var byHand = BrewSettings.documented
+    byHand.filter = .cafecAbaca
+    byHand.grindMicrons = 700
+    let dialled = Recipe.switchWaterAndTempManaged(for: byHand)
 
     #expect(dialled.grindSetting == GrindSetting(number: 8, click: 9))
     #expect(dialled.filter == .cafecAbaca)
@@ -147,5 +152,47 @@ struct RecipeTests {
     #expect(abs(sloppy.delivered.tapFraction - 0.55) < 0.001)
     #expect(abs(sloppy.leftInKettle.total - 25) < 0.001)
     #expect(abs(sloppy.kettleTemperatureAfterCooler - 77.6) < 0.1)
+  }
+}
+
+/// The app's opening values, which are not the documented recipe.
+///
+/// `RECIPE.md` records 92 degrees with the Hario paper, and the measurements
+/// in `Scaling` were taken there. What the app opens at is a preference and
+/// moves when the brewing does. These two have drifted apart once already,
+/// so each now has its own test.
+@Suite("Opening defaults")
+struct DefaultSettingsTests {
+  @Test("A new brew starts at 90 degrees with Abaca")
+  func defaults() {
+    let settings = BrewSettings()
+    #expect(settings.brewTemperature == 90)
+    #expect(settings.filter == .cafecAbaca)
+    // The Defaults screen and `BrewDefaults` both fall back to this list's
+    // head, so the order is the default rather than a presentation choice.
+    #expect(Filter.all.first == .cafecAbaca)
+  }
+
+  /// The document has not moved, and a changed default must not move it.
+  @Test("The documented recipe is still 92 with the Hario paper")
+  func documented() {
+    #expect(BrewSettings.documented.brewTemperature == 92)
+    #expect(BrewSettings.documented.filter == .harioV60Natural)
+    // The anchor for the cooling measurement, which is a fact about a kettle
+    // set to 92 rather than about any default.
+    #expect(Scaling.measuredAt == 92)
+    #expect(Recipe.switchWaterAndTempManaged(for: .documented)
+      .kettleTemperatureAtLastPour == 85.5)
+  }
+
+  /// A cooler kettle needs less cold water to reach the same last pour.
+  @Test("Ninety degrees needs less cooling water than ninety-two")
+  func coolerNeedsLess() {
+    let now = Recipe.switchWaterAndTempManaged(for: BrewSettings())
+    let before = Recipe.switchWaterAndTempManaged(for: .documented)
+    #expect(now.cooler.amount < before.cooler.amount)
+    // And the kettle takes up the difference, so the tap share is unchanged.
+    #expect(now.cooler.amount + now.kettleFill.demineralized
+      == before.cooler.amount + before.kettleFill.demineralized)
   }
 }

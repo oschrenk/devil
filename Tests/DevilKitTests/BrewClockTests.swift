@@ -77,7 +77,7 @@ struct BrewClockTests {
 
   @Test("The schedule reports one step throughout a hold")
   func scheduleStandsStill() {
-    let recipe = Recipe.switchWaterAndTempManaged
+    let recipe = Recipe.switchWaterAndTempManaged(for: .documented)
     var clock = BrewClock()
     clock.hold(raw: 35)
 

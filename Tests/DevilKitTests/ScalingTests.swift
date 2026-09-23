@@ -67,7 +67,9 @@ struct ScalingTests {
     arguments: sheet
   )
   func reproducesTheSheet(row: Row) {
-    let recipe = Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: row.servings))
+    let recipe = Recipe.switchWaterAndTempManaged(
+      for: .documented(servings: row.servings)
+    )
 
     #expect(recipe.dose == row.dose)
     #expect(recipe.waterThroughBed == row.water)
@@ -94,7 +96,7 @@ struct ScalingTests {
   @Test("The cold water grows where the sheet held it flat")
   func deviationFromTheSheet() {
     let cooling = (1 ... 5).map {
-      Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: $0)).cooler.amount
+      Recipe.switchWaterAndTempManaged(for: .documented(servings: $0)).cooler.amount
     }
 
     #expect(cooling == [12, 20.5, 29, 37.5, 46])
@@ -105,7 +107,9 @@ struct ScalingTests {
   /// The property the whole recipe turns on, at every size.
   @Test("The kettle empties and the cup stays 50:50 at every size", arguments: sheet)
   func kettleEmptiesAndBlendHolds(row: Row) {
-    let recipe = Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: row.servings))
+    let recipe = Recipe.switchWaterAndTempManaged(
+      for: .documented(servings: row.servings)
+    )
 
     #expect(abs(recipe.leftInKettle.total) < 0.000_001)
     #expect(abs(recipe.delivered.tapFraction - 0.5) < 0.000_001)
@@ -115,21 +119,27 @@ struct ScalingTests {
 
   @Test("The last pour lands on target at every size", arguments: sheet)
   func temperatureHolds(row: Row) {
-    let recipe = Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: row.servings))
+    let recipe = Recipe.switchWaterAndTempManaged(
+      for: .documented(servings: row.servings)
+    )
 
     #expect(abs(recipe.kettleTemperatureAfterCooler - 75) < 0.5)
   }
 
   @Test("The ratio stays at 1 : 16.7 at every size", arguments: sheet)
   func ratioHolds(row: Row) {
-    let recipe = Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: row.servings))
+    let recipe = Recipe.switchWaterAndTempManaged(
+      for: .documented(servings: row.servings)
+    )
 
     #expect(abs(recipe.brewRatio - 16.667) < 0.001)
   }
 
   @Test("Two servings is 22.5 g and 375 g, not a doubling")
   func twoServings() {
-    let two = Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: 2))
+    let two = Recipe.switchWaterAndTempManaged(
+      for: .documented(servings: 2)
+    )
 
     #expect(two.dose == 22.5)
     #expect(two.waterThroughBed == 375)
@@ -138,15 +148,17 @@ struct ScalingTests {
 
   @Test("One serving is what RECIPE.md describes")
   func oneServingIsTheDefault() {
-    #expect(Recipe.switchWaterAndTempManaged
-      == Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: 1)))
+    #expect(Recipe.switchWaterAndTempManaged(for: .documented)
+      == Recipe.switchWaterAndTempManaged(for: .documented(servings: 1)))
   }
 
   /// Above the sizes the spreadsheet timed there is no finish to report, and
   /// the schedule stops at the drain rather than inventing one.
   @Test("Past the timed sizes the finish is unknown, not guessed")
   func finishIsUnknownPastTheTable() {
-    let five = Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: 5))
+    let five = Recipe.switchWaterAndTempManaged(
+      for: .documented(servings: 5)
+    )
 
     #expect(five.finish == nil)
     #expect(five.steps.last?.title == "Drain")
@@ -156,7 +168,7 @@ struct ScalingTests {
   @Test("The pour times hold at every size, and only the drawdown moves")
   func pourTimesAreFixed() {
     let starts = sheet.map { row in
-      Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: row.servings))
+      Recipe.switchWaterAndTempManaged(for: .documented(servings: row.servings))
         .steps.prefix(6).map(\.start)
     }
 
@@ -212,7 +224,9 @@ struct PreheatTests {
   @Test("Only the cup part grows with the people")
   func onlyTheCupScales() {
     for servings in 1 ... 5 {
-      let recipe = Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: servings))
+      let recipe = Recipe.switchWaterAndTempManaged(
+        for: .documented(servings: servings)
+      )
 
       #expect(recipe.preheat.cups == 50 * Double(servings))
       #expect(recipe.preheat.vessel == 50)
@@ -226,7 +240,9 @@ struct PreheatTests {
     let expected: [Int: Double] = [1: 400, 2: 512.5, 3: 625, 4: 737.5, 5: 850]
 
     for (servings, litres) in expected {
-      let recipe = Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: servings))
+      let recipe = Recipe.switchWaterAndTempManaged(
+        for: .documented(servings: servings)
+      )
       #expect(recipe.tapToBoil == litres)
     }
   }
@@ -242,134 +258,5 @@ struct PreheatTests {
     #expect(noCup.tapToBoil == full.tapToBoil - 50)
     #expect(noCup.delivered == full.delivered)
     #expect(noCup.steps == full.steps)
-  }
-}
-
-@Suite("Ratio")
-struct RatioTests {
-  /// 50/3 exactly, at every size, because dose and water are both linear in
-  /// (servings + 1) and the term cancels.
-  @Test("The ratio repeats rather than rounds, at every size")
-  func ratioIsExactlyFiftyThirds() {
-    for servings in 1 ... 5 {
-      let recipe = Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: servings))
-
-      #expect(abs(recipe.brewRatio - 50.0 / 3.0) < 0.000_000_1)
-      #expect(Format.ratio(recipe.brewRatio) == "1 : 16.6\u{0305}")
-    }
-  }
-
-  @Test("A ratio that does not repeat is written plainly")
-  func otherRatiosFallBack() {
-    #expect(Format.ratio(15) == "1 : 15")
-    #expect(Format.ratio(16.5) == "1 : 16.5")
-  }
-
-  /// The slack warms nothing, so counting it here would put the preheat total
-  /// out of step with the one the brew screen reports.
-  @Test("The fixed part of a preheat leaves out the cup and the slack")
-  func fixedPreheat() {
-    #expect(PreheatPlan.standard.fixed == 200)
-    #expect(PreheatPlan(perCup: 60, vessel: 40, cone: 120, safety: 30).fixed == 160)
-  }
-
-  /// Twenty is where it starts, and the spreadsheet's figure.
-  @Test("Room temperature defaults to twenty")
-  func defaultRoom() {
-    #expect(Scaling.roomTemperature == 20)
-    #expect(BrewSettings().roomTemperature == 20)
-    #expect(Recipe.switchWaterAndTempManaged.cooler.temperature == 20)
-  }
-
-  /// The cold share is sized against the room, so colder water goes further
-  /// and less of it is needed.
-  @Test("Colder water means less of it")
-  func colderRoomNeedsLess() {
-    let warm = Recipe.switchWaterAndTempManaged(for: BrewSettings(roomTemperature: 24))
-    let standard = Recipe.switchWaterAndTempManaged
-    let cold = Recipe.switchWaterAndTempManaged(for: BrewSettings(roomTemperature: 12))
-
-    #expect(cold.cooler.amount < standard.cooler.amount)
-    #expect(standard.cooler.amount < warm.cooler.amount)
-  }
-
-  /// Whatever the room is, the kettle still empties and the bed still takes
-  /// the same water. Only the split between the beakers moves.
-  @Test("The room moves the split and nothing else")
-  func roomOnlyMovesTheSplit() {
-    for room in [8.0, 14, 20, 26, 32] {
-      let recipe = Recipe.switchWaterAndTempManaged(for: BrewSettings(roomTemperature: room))
-      let standard = Recipe.switchWaterAndTempManaged
-
-      #expect(recipe.waterThroughBed == standard.waterThroughBed)
-      #expect(recipe.kettleFill.tap == standard.kettleFill.tap)
-      #expect(recipe.dose == standard.dose)
-      #expect(recipe.cooler.temperature == room)
-      // Beaker A takes what beaker B gives up, so the pour still adds up.
-      let split = recipe.kettleFill.demineralized + recipe.cooler.amount
-      #expect(abs(split - (standard.kettleFill.demineralized + standard.cooler.amount)) < 1)
-    }
-  }
-
-  /// A room at or above the target leaves no cold water able to cool
-  /// anything, so the pour goes in hot rather than dividing by zero.
-  @Test("A room as warm as the target pours everything hot")
-  func roomAtTheTarget() {
-    let hopeless = Recipe.switchWaterAndTempManaged(for: BrewSettings(roomTemperature: 80))
-
-    #expect(hopeless.cooler.amount == 0)
-  }
-
-  /// The one measurement everything else is stretched from: 92 set, 85.5 when
-  /// the cold water goes in, at one serving into a 20 degree room.
-  @Test("One serving still drops the measured 6.5")
-  func anchoredToTheMeasurement() {
-    let drop = Scaling.temperatureDrop(water: Scaling.water(servings: 1), brewTemperature: 92)
-
-    #expect(abs(drop - Scaling.referenceDrop) < 0.001)
-    #expect(abs(Recipe.switchWaterAndTempManaged.kettleTemperatureAtLastPour - 85.5) < 0.001)
-  }
-
-  /// More water is more to cool, so a bigger batch falls less. The
-  /// spreadsheet types 85.5 into every row, which cannot be right.
-  @Test("A bigger batch falls less")
-  func biggerBatchesFallLess() throws {
-    let drops = (1 ... 5).map {
-      Scaling.temperatureDrop(water: Scaling.water(servings: $0), brewTemperature: 92)
-    }
-
-    for (bigger, smaller) in zip(drops, drops.dropFirst()) {
-      #expect(smaller < bigger)
-    }
-    #expect(try #require(drops.last) > 2)
-  }
-
-  /// A kettle set lower starts closer to the room, so it has less to lose.
-  @Test("A cooler kettle falls less")
-  func coolerKettleFallsLess() {
-    let water = Scaling.water(servings: 1)
-
-    #expect(
-      Scaling.temperatureDrop(water: water, brewTemperature: 85)
-        < Scaling.temperatureDrop(water: water, brewTemperature: 92)
-    )
-    #expect(
-      Scaling.temperatureDrop(water: water, brewTemperature: 96)
-        > Scaling.temperatureDrop(water: water, brewTemperature: 92)
-    )
-  }
-
-  /// A kettle already at room temperature has nothing to lose.
-  @Test("A kettle at room temperature does not fall")
-  func nothingToLose() {
-    #expect(Scaling.temperatureDrop(water: 250, brewTemperature: 20, room: 20) == 0)
-  }
-
-  /// The body is a third of what has to cool at one serving, so leaving it
-  /// out would exaggerate how much a bigger batch helps.
-  @Test("The kettle body counts as mass")
-  func theKettleCounts() {
-    #expect(Scaling.kettleThermalMass == 90)
-    #expect(Scaling.kettleShareOfWater * Scaling.water(servings: 1) < 2 * Scaling.kettleThermalMass)
   }
 }

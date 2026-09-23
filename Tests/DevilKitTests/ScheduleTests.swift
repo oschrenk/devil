@@ -3,7 +3,7 @@ import Testing
 
 @Suite("Schedule")
 struct ScheduleTests {
-  let recipe = Recipe.switchWaterAndTempManaged
+  let recipe = Recipe.switchWaterAndTempManaged(for: .documented)
 
   @Test("The schedule runs 0:00 to 3:15 in seven steps")
   func shape() {

@@ -20,5 +20,8 @@ public extension Filter {
   static let cafecAbaca = Filter(name: "Cafec, Abaca")
   static let sibaristFast = Filter(name: "Sibarist, Fast")
 
-  static let all: [Filter] = [.harioV60Natural, .cafecAbaca, .sibaristFast]
+  /// Abaca first, because first is the default: `BrewDefaults` falls back to
+  /// this list's head when nothing is stored, and the Defaults screen lists
+  /// them in this order.
+  static let all: [Filter] = [.cafecAbaca, .harioV60Natural, .sibaristFast]
 }

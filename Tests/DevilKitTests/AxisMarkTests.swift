@@ -4,7 +4,7 @@ import Testing
 @Suite("Labelled step times")
 struct AxisMarkTests {
   private var recipe: Recipe {
-    Recipe.switchWaterAndTempManaged
+    Recipe.switchWaterAndTempManaged(for: .documented)
   }
 
   /// The swirl sits ten seconds after the first pour, and on a phone the two
@@ -25,7 +25,9 @@ struct AxisMarkTests {
     let starts = Set(recipe.steps.map(\.start.seconds))
 
     for servings in 1 ... 5 {
-      let recipe = Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: servings))
+      let recipe = Recipe.switchWaterAndTempManaged(
+        for: BrewSettings.documented(servings: servings)
+      )
       let times = recipe.labelledStepTimes(minimumGap: 25)
       #expect(!times.isEmpty)
       #expect(times.allSatisfy { Set(recipe.steps.map(\.start.seconds)).contains($0) })

@@ -3,7 +3,7 @@ import Testing
 
 @Suite("Brew progress")
 struct BrewProgressTests {
-  let recipe = Recipe.switchWaterAndTempManaged
+  let recipe = Recipe.switchWaterAndTempManaged(for: .documented)
 
   /// The check that matters: at no second between the first pour and the last
   /// drip is the app unsure what to do.
@@ -64,7 +64,7 @@ struct BrewProgressTests {
   /// and the timer has to stop there rather than run to a made-up number.
   @Test("At a size nobody timed, the clock ends at the drain")
   func untimedSize() {
-    let five = Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: 5))
+    let five = Recipe.switchWaterAndTempManaged(for: BrewSettings.documented(servings: 5))
 
     #expect(five.progress(atSeconds: 150).step.title == "Drain")
     #expect(five.progress(atSeconds: 150).isComplete)
@@ -74,7 +74,7 @@ struct BrewProgressTests {
 
 @Suite("Instructions")
 struct InstructionTests {
-  let recipe = Recipe.switchWaterAndTempManaged
+  let recipe = Recipe.switchWaterAndTempManaged(for: .documented)
 
   @Test("The bloom closes the switch before it pours")
   func bloom() {
@@ -112,7 +112,7 @@ struct InstructionTests {
 
   @Test("Weights read the way the scale does, at every size")
   func weightsAtOtherSizes() {
-    let two = Recipe.switchWaterAndTempManaged(for: BrewSettings(servings: 2))
+    let two = Recipe.switchWaterAndTempManaged(for: BrewSettings.documented(servings: 2))
     let step = two.progress(atSeconds: 60).step
 
     // 112.5 g keeps its decimal; 75 g does not gain one.

@@ -27,11 +27,11 @@ struct BrewRecordJSONTests {
     #expect(json.contains("\"grind\": \"7.6\""))
     #expect(json.contains("\"grindMicrons\": 583"))
     #expect(json.contains("\"grinder\": \"1Zpresso K-Ultra\""))
-    #expect(json.contains("\"filter\": \"Hario V60, Natural\""))
-    #expect(json.contains("\"brewTemperature\": 92"))
+    #expect(json.contains("\"filter\": \"Cafec, Abaca\""))
+    #expect(json.contains("\"brewTemperature\": 90"))
     #expect(json.contains("\"temperatureTarget\": 75"))
-    #expect(json.contains("\"beakerA\": 107"))
-    #expect(json.contains("\"beakerB\": 18"))
+    #expect(json.contains("\"beakerA\": 109"))
+    #expect(json.contains("\"beakerB\": 16"))
   }
 
   /// Thousands of times longer than everything above it, so a reader opening

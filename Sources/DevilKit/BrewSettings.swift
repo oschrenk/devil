@@ -32,12 +32,31 @@ public struct BrewSettings: Equatable, Sendable {
   /// How much water warms the cup, the vessel and the cone.
   public var preheat: PreheatPlan
 
+  /// The recipe exactly as `RECIPE.md` documents it.
+  ///
+  /// Pinned, and deliberately not the defaults. The app opens at 90 degrees
+  /// with Abaca because that is what gets brewed; the document records 92
+  /// with the Hario paper, and the measurements in `Scaling` were taken
+  /// there. Tests cite this so a change of default cannot quietly rewrite
+  /// what the document claims.
+  public static let documented = BrewSettings(
+    brewTemperature: 92,
+    filter: .harioV60Natural
+  )
+
+  /// The documented recipe, brewed for a given number of people.
+  public static func documented(servings: Int) -> BrewSettings {
+    var settings = documented
+    settings.servings = servings
+    return settings
+  }
+
   public init(
     servings: Int = 1,
-    brewTemperature: Double = 92,
+    brewTemperature: Double = 90,
     temperatureTarget: Double = 75,
     roomTemperature: Double = Scaling.roomTemperature,
-    filter: Filter = .harioV60Natural,
+    filter: Filter = .cafecAbaca,
     grinder: Grinder = .oneZpressoKUltra,
     grindMicrons: Double = BrewSettings.defaultMicrons,
     preheat: PreheatPlan = .standard

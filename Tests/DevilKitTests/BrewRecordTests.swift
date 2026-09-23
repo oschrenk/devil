@@ -65,7 +65,7 @@ struct BrewRecordTests {
     #expect(lines.contains("- Grind Size: 7.6 (583 \u{00B5}m)"))
     #expect(lines.contains("grind: 7.6"))
     #expect(lines.contains("grindMicrons: 583"))
-    #expect(lines.contains("- Temperature: 92 °C"))
+    #expect(lines.contains("- Temperature: 90 °C"))
     #expect(lines.contains("- Yield: 250 g"))
     #expect(lines.contains("- Weight: 15 g"))
     #expect(lines.contains("- Recipe: #recipe/hario-switch"))
