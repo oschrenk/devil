@@ -152,12 +152,9 @@ struct ContentView: View {
         // quiet row and the app behaves exactly as it does without a probe.
         Section("Probe") {
           Button { pickingProbe = true } label: {
-            ProbeRow(state: probe.state, reports: probe.reports)
+            ProbeRow(state: probe.state, zone: probe.probe?.zonesCelsius.first)
           }
           .tint(.primary)
-          if probe.state.isConnected, let zones = probe.probe?.zonesCelsius, !zones.isEmpty {
-            LabelledValue(label: "Zone 1", value: Format.degrees(zones[0]))
-          }
         }
 
         Section {

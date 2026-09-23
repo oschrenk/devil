@@ -90,7 +90,8 @@ struct ProbePicker: View {
 /// The probe's state, in the words that name its remedy.
 struct ProbeRow: View {
   let state: ProbeState
-  let reports: Int
+  /// Zone one, in Celsius. `nil` while nothing has decoded yet.
+  let zone: Double?
 
   var body: some View {
     HStack {
@@ -119,9 +120,10 @@ struct ProbeRow: View {
     switch state {
     case .noneChosen, .bluetoothOff, .unauthorised: nil
     case .searching: "not found"
-    // Silence and a reading look the same on a row that only shows degrees,
-    // so the count says the stream is alive.
-    case .connected: reports == 0 ? "waiting" : "\(reports)"
+    // The reading is the proof the stream is alive, so it is the only thing
+    // worth the space. A count told you frames arrived, not that they meant
+    // anything.
+    case .connected: zone.map(Format.degrees) ?? "waiting"
     }
   }
 }
