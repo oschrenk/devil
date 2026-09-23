@@ -57,19 +57,20 @@ struct BleCaptureView: View {
 
       if let probe = capture.probe {
         Section {
-          LabeledContent("Tip", value: degrees(probe.tipCelsius))
           ForEach(Array(probe.zonesCelsius.enumerated()), id: \.offset) { index, zone in
-            LabeledContent("Zone \(index + 1)", value: degrees(zone))
+            LabeledContent(index == 0 ? "Tip" : "Zone \(index + 1)", value: degrees(zone))
           }
           LabeledContent("Ambient", value: degrees(probe.ambientCelsius))
+          LabeledContent("Coldest", value: degrees(probe.coldestCelsius))
           if let battery = probe.batteryValue {
             LabeledContent("Probe battery", value: "\(battery) %")
           }
         } header: {
           Text("Probe")
         } footer: {
-          Text("\(capture.reports) reports. The wire carries tenths of a degree "
-            + "Fahrenheit; these are converted.")
+          Text("\(capture.reports) reports, in tenths of a degree Fahrenheit on "
+            + "the wire. Coldest is the device's own figure, shown as Meat in "
+            + "their app. Tip is measured.")
         }
       }
 

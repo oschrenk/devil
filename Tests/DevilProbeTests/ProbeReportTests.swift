@@ -1,5 +1,6 @@
 @testable import DevilKit
 @testable import DevilProbe
+import Foundation
 import Testing
 
 /// One real message, captured 2026-09-22 at 20:39:04 with the probe resting on
@@ -51,11 +52,34 @@ struct ProbeReportTests {
   @Test("Tenths of Fahrenheit convert to what the app displayed")
   func units() throws {
     let probe = try #require(ProbeReport.decode(message: bytes(captured))?.cmdData.probes.first)
-    #expect(abs(probe.tipCelsius - 25.6) < 0.1)
+    #expect(abs((probe.tipCelsius ?? 0) - 25.6) < 0.1)
     #expect(abs(probe.ambientCelsius - 25.6) < 0.1)
     #expect(probe.zonesCelsius.count == 5)
     // 1580 tenths of Fahrenheit is the 70 degree target the app showed.
     #expect(abs(ProbeReport.celsius(tenthsFahrenheit: 1580) - 70) < 0.01)
+  }
+
+  /// `curTemperature` is the coldest zone, not the tip. It matched the tip in
+  /// 58 of 123 captured readings and the minimum in all 123, so a sample where
+  /// the tip is hottest is the one that tells them apart.
+  @Test("The tip is the first zone, and the device's own figure is the coldest")
+  func tipIsNotTheColdest() throws {
+    // Captured shape, with the tip in hot water and the shaft still in air.
+    let json = #"""
+    {"cmdType":"WT11:status:report","cmdData":{"probes":[{
+      "curTemperature":819,
+      "areaTemperature":[1166,863,839,820,819],
+      "curAmbientTemperature":781}]}}
+    """#
+    let report = try JSONDecoder().decode(ProbeReport.self, from: Data(json.utf8))
+    let probe = try #require(report.cmdData.probes.first)
+
+    // 116.6 Fahrenheit at the tip, 81.9 at the far end.
+    #expect(abs((probe.tipCelsius ?? 0) - 47.0) < 0.1)
+    #expect(abs(probe.coldestCelsius - 27.7) < 0.1)
+    #expect(probe.tipCelsius != probe.coldestCelsius)
+    // The device's figure is the minimum, which is what makes it wrong here.
+    #expect(probe.curTemperature == probe.areaTemperature.min())
   }
 
   @Test("The message states its own lengths, and both are used")
