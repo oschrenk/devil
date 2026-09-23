@@ -171,7 +171,7 @@ struct ContentView: View {
       .toolbar {
         ToolbarItem(placement: .topBarLeading) {
           NavigationLink {
-            BrewLogView(store: BrewLogStore())
+            BrewLogView(store: BrewLogStore(), scale: scale, defaults: defaults)
           } label: {
             Label("Brews", systemImage: "list.bullet.rectangle")
           }
@@ -206,7 +206,7 @@ struct ContentView: View {
     // there is no stack underneath to push onto.
     .sheet(item: $notesFor) { brew in
       NavigationStack {
-        BrewDetailView(store: BrewLogStore(), brew: brew)
+        BrewDetailView(store: BrewLogStore(), brew: brew, scale: scale, defaults: defaults)
           .toolbar {
             ToolbarItem(placement: .topBarLeading) {
               Button("Close") { notesFor = nil }

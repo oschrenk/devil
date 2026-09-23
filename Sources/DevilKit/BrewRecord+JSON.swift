@@ -34,6 +34,12 @@ public extension BrewRecord {
     fields.append("\"roomTemperature\": \(Format.number(roomTemperature))")
     fields.append("\"beakerA\": \(Format.number(beakerA))")
     fields.append("\"beakerB\": \(Format.number(beakerB))")
+    if let vessel {
+      fields.append(Self.field("vessel", vessel))
+    }
+    if let drink {
+      fields.append("\"drink\": \(Format.number(drink))")
+    }
     fields.append("\"samples\": \(trace.samplesJSON)")
     return "{\(fields.joined(separator: ", "))}"
   }

@@ -51,6 +51,13 @@ struct BrewLogStore {
     try? edited.write(to: markdown(for: record.stamp.stem), atomically: true, encoding: .utf8)
   }
 
+  /// Writes the drink weight into the existing file, leaving the note alone.
+  func saveDrink(vessel: String?, drink: Double?, for record: BrewRecord) {
+    guard let text = text(for: record) else { return }
+    let edited = BrewRecord.applyDrink(vessel: vessel, drink: drink, to: text)
+    try? edited.write(to: markdown(for: record.stamp.stem), atomically: true, encoding: .utf8)
+  }
+
   /// The pour, or `nil` for a brew made without a scale.
   func pour(for record: BrewRecord) -> PourTrace? {
     guard record.trace != nil,

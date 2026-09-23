@@ -9,15 +9,34 @@ import SwiftUI
 struct BrewDetailView: View {
   let store: BrewLogStore
   let brew: BrewRecord
+  /// `nil` when nothing handed one down. The weigh step then takes a typed
+  /// total instead, which is the rule `DEVIL-09` set: the app is whole
+  /// without a scale.
+  var scale: ScaleConnection?
+  var defaults: BrewDefaults?
 
   @Environment(\.scenePhase) private var scenePhase
   @State private var notes: String
   @State private var pour: PourTrace?
+  @State private var drink: Double?
 
-  init(store: BrewLogStore, brew: BrewRecord) {
+  init(
+    store: BrewLogStore,
+    brew: BrewRecord,
+    scale: ScaleConnection? = nil,
+    defaults: BrewDefaults? = nil
+  ) {
     self.store = store
     self.brew = brew
+    self.scale = scale
+    self.defaults = defaults
     _notes = State(initialValue: brew.notes)
+    _drink = State(initialValue: brew.drink)
+  }
+
+  /// The one the brew already used, else the one Defaults chose.
+  private var vessel: Vessel {
+    Vessel.all.first { $0.name == brew.vessel } ?? defaults?.drinkVessel ?? Vessel.all[0]
   }
 
   /// Rebuilt at the size this brew was, so the intended pour drawn under it
@@ -54,6 +73,11 @@ struct BrewDetailView: View {
           )
           .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
         }
+      }
+
+      DrinkWeighIn(scale: scale, vessel: vessel, recorded: drink) { chosen, weight in
+        drink = weight
+        store.saveDrink(vessel: chosen.name, drink: weight, for: brew)
       }
 
       Section("Notes") {

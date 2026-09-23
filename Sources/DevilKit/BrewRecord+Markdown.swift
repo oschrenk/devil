@@ -28,6 +28,12 @@ public extension BrewRecord {
     if let trace {
       lines.append("trace: \(trace)")
     }
+    if let vessel {
+      lines.append("vessel: \(vessel)")
+    }
+    if let drink {
+      lines.append("drink: \(Format.number(drink))")
+    }
     lines.append("---")
     lines.append("")
     lines.append("# \u{2615}\u{FE0F} \(stamp.readable)")
@@ -130,6 +136,8 @@ public extension BrewRecord {
       beakerB: beakerB,
       finished: front["finished"] == "true",
       trace: front["trace"],
+      vessel: front["vessel"],
+      drink: front["drink"].flatMap(Double.init),
       notes: notes
     )
   }

@@ -30,6 +30,12 @@ public struct BrewRecord: Equatable, Sendable, Identifiable {
   public var finished: Bool
   /// The name of the sidecar holding the pour, or `nil` with no scale.
   public var trace: String?
+  /// What the drink was poured into, and `nil` for a brew nobody weighed.
+  /// Kept beside the weight because the weight is a difference, and a
+  /// difference means nothing without the number it came from.
+  public var vessel: String?
+  /// What came out, in grams, less the vessel.
+  public var drink: Double?
   /// Whatever you type afterwards, as prose.
   ///
   /// One field and not a form. A form presumes the vocabulary is settled, and
@@ -53,6 +59,8 @@ public struct BrewRecord: Equatable, Sendable, Identifiable {
     beakerB: Double,
     finished: Bool,
     trace: String? = nil,
+    vessel: String? = nil,
+    drink: Double? = nil,
     notes: String = ""
   ) {
     self.stamp = stamp
@@ -71,6 +79,8 @@ public struct BrewRecord: Equatable, Sendable, Identifiable {
     self.beakerB = beakerB
     self.finished = finished
     self.trace = trace
+    self.vessel = vessel
+    self.drink = drink
     self.notes = notes
   }
 

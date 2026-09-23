@@ -8,6 +8,8 @@ import SwiftUI
 /// edit, and one deleted elsewhere disappears.
 struct BrewLogView: View {
   let store: BrewLogStore
+  var scale: ScaleConnection?
+  var defaults: BrewDefaults?
 
   @State private var brews: [BrewRecord] = []
 
@@ -15,7 +17,7 @@ struct BrewLogView: View {
     List {
       ForEach(brews, id: \.stamp.stem) { brew in
         NavigationLink {
-          BrewDetailView(store: store, brew: brew)
+          BrewDetailView(store: store, brew: brew, scale: scale, defaults: defaults)
         } label: {
           BrewRow(brew: brew)
         }

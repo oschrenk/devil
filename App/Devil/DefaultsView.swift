@@ -20,6 +20,21 @@ struct DefaultsView: View {
       }
 
       Section {
+        ForEach(Vessel.all) { vessel in
+          ChoiceRow(
+            label: "\(vessel.name)  \(Format.grams(vessel.weight))",
+            isChosen: vessel == defaults.drinkVessel
+          ) {
+            defaults.drinkVessel = vessel
+          }
+        }
+      } header: {
+        Text("Vessel")
+      } footer: {
+        Text("What you drink from. Its empty weight comes off the total when you weigh a brew.")
+      }
+
+      Section {
         ForEach(Grinder.all) { grinder in
           ChoiceRow(label: grinder.name, isChosen: grinder == defaults.grinder) {
             defaults.grinder = grinder

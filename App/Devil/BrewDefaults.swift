@@ -15,6 +15,7 @@ final class BrewDefaults {
   private enum Key {
     static let filter = "defaultFilter"
     static let grinder = "defaultGrinder"
+    static let drinkVessel = "defaultDrinkVessel"
     static let microns = "defaultMicrons"
     static let brewTemperature = "defaultBrewTemperature"
     static let temperatureTarget = "defaultTemperatureTarget"
@@ -37,6 +38,13 @@ final class BrewDefaults {
 
   var grinder: Grinder {
     didSet { save(grinder.name, Key.grinder) }
+  }
+
+  /// What the drink is poured into, so the weigh step opens on the right one.
+  /// Named `drinkVessel` in storage because `Key.vessel` was already the
+  /// preheat's.
+  var drinkVessel: Vessel {
+    didSet { save(drinkVessel.name, Key.drinkVessel) }
   }
 
   /// The size a brew starts at, before you nudge it for the bean.
@@ -79,6 +87,8 @@ final class BrewDefaults {
     let saved = store.number(Key.microns)
     filter = Filter.all.first { $0.name == filterName } ?? Filter.all[0]
     grinder = Grinder.all.first { $0.name == grinderName } ?? Grinder.all[0]
+    let vesselName = store.string(forKey: Key.drinkVessel)
+    drinkVessel = Vessel.all.first { $0.name == vesselName } ?? Vessel.all[0]
     microns = saved ?? BrewSettings.defaultMicrons
     let standard = BrewSettings.one
     brewTemperature = store.number(Key.brewTemperature) ?? standard.brewTemperature
