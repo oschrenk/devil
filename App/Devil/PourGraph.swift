@@ -10,6 +10,9 @@ import SwiftUI
 struct PourGraph: View {
   let recipe: Recipe
   let trace: PourTrace
+  /// Empty when no probe is connected, and then nothing below draws.
+  var heat = HeatTrace()
+  var zone = 0
 
   /// About one point per two screen points across the width of a phone. Beyond
   /// that the extra readings land on pixels already drawn, and redrawing them
@@ -22,8 +25,24 @@ struct PourGraph: View {
     trace.drawableSegments(limit: Self.drawnPoints, within: 0 ... recipe.waterThroughBed)
   }
 
+  private var overlay: HeatOverlay {
+    HeatOverlay(trace: heat, zone: zone, ceiling: recipe.waterThroughBed)
+  }
+
   var body: some View {
     Chart {
+      // Degrees on a chart of grams, projected onto the weight scale and
+      // labelled back on the trailing edge. Drawn first, so the pour stays
+      // the thing you read.
+      ForEach(overlay.samples) { point in
+        LineMark(
+          x: .value("Time", point.seconds),
+          y: .value("Weight", overlay.projected(point.grams)),
+          series: .value("Pour", "heat")
+        )
+        .foregroundStyle(.orange)
+        .lineStyle(StrokeStyle(lineWidth: 1.5))
+      }
       // The recipe's phases, dashed so they cannot be mistaken for the time
       // scale. Solid and unnumbered they read as ticks whose labels went
       // missing, which is exactly how they were read.
@@ -62,6 +81,13 @@ struct PourGraph: View {
     .chartYAxis {
       AxisMarks(values: .stride(by: 100)) {
         AxisGridLine()
+      }
+      if !overlay.isEmpty {
+        AxisMarks(position: .trailing, values: overlay.marks) { value in
+          AxisValueLabel(
+            Format.degrees(overlay.celsius(atHeight: value.as(Double.self) ?? 0))
+          )
+        }
       }
     }
     // The recipe's own times, not an even stride. `1:45` is when something

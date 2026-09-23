@@ -14,6 +14,9 @@ struct BrewGraph: View {
   let ideal: [PourSample]
   let total: Double
   let ceiling: Double
+  /// Empty for a brew made without a probe, and then nothing below draws.
+  var heat = HeatTrace()
+  var zone = 0
 
   /// Seconds across the screen. The whole brew to start with, so the first
   /// look is the same shape the timer showed.
@@ -30,8 +33,21 @@ struct BrewGraph: View {
     trace.drawableSegments(limit: 600, within: 0 ... ceiling)
   }
 
+  private var overlay: HeatOverlay {
+    HeatOverlay(trace: heat, zone: zone, ceiling: ceiling)
+  }
+
   var body: some View {
     Chart {
+      ForEach(overlay.samples) { point in
+        LineMark(
+          x: .value("Time", point.seconds),
+          y: .value("Weight", overlay.projected(point.grams)),
+          series: .value("Pour", "heat")
+        )
+        .foregroundStyle(.orange)
+        .lineStyle(StrokeStyle(lineWidth: 1.5))
+      }
       // The pour the recipe intends, under the one you are making. Drawn
       // first so a real pour sits on top of it rather than behind it.
       ForEach(ideal) { point in
@@ -57,6 +73,13 @@ struct BrewGraph: View {
     .chartYScale(domain: 0 ... ceiling)
     .chartYAxis {
       AxisMarks(values: .stride(by: 100)) { AxisGridLine() }
+      if !overlay.isEmpty {
+        AxisMarks(position: .trailing, values: overlay.marks) { value in
+          AxisValueLabel(
+            Format.degrees(overlay.celsius(atHeight: value.as(Double.self) ?? 0))
+          )
+        }
+      }
     }
     .chartXAxis {
       AxisMarks(values: .stride(by: 30)) { value in

@@ -58,6 +58,15 @@ struct BrewLogStore {
     try? edited.write(to: markdown(for: record.stamp.stem), atomically: true, encoding: .utf8)
   }
 
+  /// The heat, or an empty trace for a brew made without a probe.
+  func heat(for record: BrewRecord) -> HeatTrace {
+    guard record.trace != nil,
+          let text = try? String(contentsOf: trace(for: record.stamp.stem), encoding: .utf8),
+          let body = HeatTrace.body(in: text)
+    else { return HeatTrace() }
+    return HeatTrace.parse(json: body) ?? HeatTrace()
+  }
+
   /// The pour, or `nil` for a brew made without a scale.
   func pour(for record: BrewRecord) -> PourTrace? {
     guard record.trace != nil,
@@ -110,9 +119,18 @@ struct BrewLogStore {
   ///
   /// A brew with no readings writes no sidecar. An empty `samples` array on
   /// disk claims a scale was watching and saw nothing, which is a different
-  /// morning from one brewed without a scale.
+  /// morning from one brewed without a scale. The same holds for the probe,
+  /// so `temperatures` appears only when one was connected.
+  ///
+  /// A probe without a scale writes no sidecar either. The file is keyed on
+  /// the pour, and a temperature series with no pour to sit against is a
+  /// question for a later morning.
   @discardableResult
-  func save(_ record: BrewRecord, trace pour: PourTrace?) -> String? {
+  func save(
+    _ record: BrewRecord,
+    trace pour: PourTrace?,
+    heat: HeatTrace = HeatTrace()
+  ) -> String? {
     var record = record
     let stem = record.stamp.stem
     let hasReadings = (pour?.samples.isEmpty == false)
@@ -122,7 +140,7 @@ struct BrewLogStore {
       try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
       try record.markdown.write(to: markdown(for: stem), atomically: true, encoding: .utf8)
       if hasReadings, let pour {
-        try record.json(trace: pour)
+        try record.json(trace: pour, heat: heat)
           .write(to: trace(for: stem), atomically: true, encoding: .utf8)
       }
       return stem

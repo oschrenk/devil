@@ -46,6 +46,7 @@ struct HeldNote: View {
       settings: BrewSettings(),
       brew: RunningBrew(tappedAt: .now),
       scale: ScaleConnection(),
+      probe: ProbeConnection(),
       notesFor: .constant(nil)
     )
   }

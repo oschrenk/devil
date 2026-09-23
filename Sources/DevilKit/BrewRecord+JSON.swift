@@ -17,8 +17,9 @@ public extension BrewRecord {
   ///
   /// `samples` goes last on purpose. It is thousands of times longer than
   /// everything above it, and a reader opening the file should see what the
-  /// brew was before the wall of numbers.
-  func json(trace: PourTrace) -> String {
+  /// brew was before the wall of numbers. `temperatures` follows it, and only
+  /// when a probe was connected.
+  func json(trace: PourTrace, heat: HeatTrace = HeatTrace()) -> String {
     var fields: [String] = []
     fields.append(Self.field("brewed", stamp.timestamp))
     fields.append(Self.field("recipe", recipe))
@@ -41,6 +42,12 @@ public extension BrewRecord {
       fields.append("\"drink\": \(Format.number(drink))")
     }
     fields.append("\"samples\": \(trace.samplesJSON)")
+    // After `samples`, for the reason `samples` itself goes last: a reader
+    // meets the brew before the wall of numbers. Absent when no probe was
+    // connected, rather than present and empty.
+    if !heat.isEmpty {
+      fields.append("\"temperatures\": \(heat.samplesJSON)")
+    }
     return "{\(fields.joined(separator: ", "))}"
   }
 

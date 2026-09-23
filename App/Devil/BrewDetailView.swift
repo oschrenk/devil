@@ -18,6 +18,7 @@ struct BrewDetailView: View {
   @Environment(\.scenePhase) private var scenePhase
   @State private var notes: String
   @State private var pour: PourTrace?
+  @State private var heat = HeatTrace()
   @State private var drink: Double?
 
   init(
@@ -69,7 +70,8 @@ struct BrewDetailView: View {
             trace: pour,
             ideal: recipe.idealPour,
             total: Double(recipe.totalTime.seconds),
-            ceiling: brew.water
+            ceiling: brew.water,
+            heat: heat
           )
           .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
         }
@@ -92,7 +94,10 @@ struct BrewDetailView: View {
         Label("Share", systemImage: "square.and.arrow.up")
       }
     }
-    .task { pour = store.pour(for: brew) }
+    .task {
+      pour = store.pour(for: brew)
+      heat = store.heat(for: brew)
+    }
     // Written when you leave, and again if the app goes to the background
     // with the screen still open, so a note typed and then abandoned is not
     // lost to whatever happens next.

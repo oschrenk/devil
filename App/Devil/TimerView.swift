@@ -13,6 +13,7 @@ struct TimerView: View {
   let settings: BrewSettings
   let brew: RunningBrew
   let scale: ScaleConnection
+  let probe: ProbeConnection
   /// Set when you ask for the notes, so the screen behind can open them once
   /// this one has gone.
   @Binding var notesFor: BrewRecord?
@@ -24,6 +25,7 @@ struct TimerView: View {
   @State private var startSignal = BrewStartSignal()
   @State private var pausedBy = PauseSource.phone
   @State private var trace = PourTrace()
+  @State private var heat = HeatTrace()
   /// What the chart draws, taken from `trace` once a second.
   ///
   /// The readings arrive ten times a second, but the line advances about two
@@ -84,7 +86,7 @@ struct TimerView: View {
       at: BrewStamp(Date.now),
       finished: now.isComplete
     )
-    guard let stem = store.save(record, trace: trace) else { return nil }
+    guard let stem = store.save(record, trace: trace, heat: heat) else { return nil }
     return store.brews().first { $0.id == stem }
   }
 
@@ -140,7 +142,7 @@ struct TimerView: View {
         // foot of the screen it read as a separate panel, with the reading it
         // explains an inch away.
         if seconds > 0, !drawnTrace.samples.isEmpty {
-          PourGraph(recipe: recipe, trace: drawnTrace)
+          PourGraph(recipe: recipe, trace: drawnTrace, heat: heat)
           Spacer(minLength: 0)
         } else {
           Spacer(minLength: 0)
@@ -190,6 +192,18 @@ struct TimerView: View {
       // never appear.
       .onChange(of: progress.isComplete, initial: true) { _, complete in
         hasFinished = complete
+      }
+      // Counted rather than watched for a change, for the reason the scale's
+      // readings are: two identical reports are still two reports, and a
+      // steady temperature would otherwise record nothing at all.
+      .onChange(of: probe.reports) { _, _ in
+        guard let reading = probe.probe, seconds > 0, !clock.isHeld else { return }
+        let raw = Date.now.timeIntervalSince(brew.start)
+        heat.append(
+          seconds: clock.elapsed(raw: raw),
+          zones: reading.zonesCelsius,
+          ambient: reading.ambientCelsius
+        )
       }
       .onChange(of: scale.weightSamples) { _, _ in
         guard let grams = scale.weight, seconds > 0, !clock.isHeld else { return }

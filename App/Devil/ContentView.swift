@@ -9,7 +9,9 @@ struct ContentView: View {
   /// The brew whose notes to open, set by the timer as it closes.
   @State private var notesFor: BrewRecord?
   @State private var scale = ScaleConnection()
+  @State private var probe = ProbeConnection()
   @State private var picking = false
+  @State private var pickingProbe = false
 
   private var dialAndSize: String {
     let size = Format.microns(settings.grindMicrons)
@@ -146,6 +148,18 @@ struct ContentView: View {
           }
         }
 
+        // Below the scale, and optional in the same way. Left alone it is one
+        // quiet row and the app behaves exactly as it does without a probe.
+        Section("Probe") {
+          Button { pickingProbe = true } label: {
+            ProbeRow(state: probe.state, reports: probe.reports)
+          }
+          .tint(.primary)
+          if probe.state.isConnected, let zones = probe.probe?.zonesCelsius, !zones.isEmpty {
+            LabelledValue(label: "Zone 1", value: Format.degrees(zones[0]))
+          }
+        }
+
         Section {
           // What to measure out. The first two go in the kettle and boil.
           // The last waits in its own beaker and goes in cold.
@@ -207,6 +221,9 @@ struct ContentView: View {
     // it should not sit on a navigation stack where a stray back-swipe ends it,
     // and a push destination inside a Form can deactivate on its own, which it
     // did, closing the timer part-way through a brew.
+    .sheet(isPresented: $pickingProbe) {
+      ProbePicker(probe: probe)
+    }
     .sheet(isPresented: $picking) {
       ScalePicker(scale: scale)
     }
@@ -225,6 +242,7 @@ struct ContentView: View {
       settings.servings = servings
     }
     .task { scale.begin() }
+    .task { probe.begin() }
     // A sheet rather than a push, because the timer it follows is a cover and
     // there is no stack underneath to push onto.
     .sheet(item: $notesFor) { brew in
@@ -244,6 +262,7 @@ struct ContentView: View {
           settings: settings,
           brew: brew,
           scale: scale,
+          probe: probe,
           notesFor: $notesFor
         )
       }
