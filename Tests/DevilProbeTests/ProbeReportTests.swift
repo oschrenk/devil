@@ -40,7 +40,7 @@ struct ProbeReportTests {
     let report = try #require(ProbeReport.decode(message: bytes(captured)))
     #expect(report.cmdType == "WT11:status:report")
 
-    let probe = try #require(report.cmdData.probes.first)
+    let probe = try #require(report.cmdData.probes?.first)
     // Tenths of a degree Fahrenheit, tip first.
     #expect(probe.curTemperature == 780)
     #expect(probe.areaTemperature == [780, 781, 781, 782, 783])
@@ -51,7 +51,7 @@ struct ProbeReportTests {
   /// showed 25.84 a few seconds either side of this message.
   @Test("Tenths of Fahrenheit convert to what the app displayed")
   func units() throws {
-    let probe = try #require(ProbeReport.decode(message: bytes(captured))?.cmdData.probes.first)
+    let probe = try #require(ProbeReport.decode(message: bytes(captured))?.cmdData.probes?.first)
     #expect(abs((probe.zonesCelsius.first ?? 0) - 25.6) < 0.1)
     #expect(abs(probe.ambientCelsius - 25.6) < 0.1)
     #expect(probe.zonesCelsius.count == 5)
@@ -72,7 +72,7 @@ struct ProbeReportTests {
       "curAmbientTemperature":781}]}}
     """#
     let report = try JSONDecoder().decode(ProbeReport.self, from: Data(json.utf8))
-    let probe = try #require(report.cmdData.probes.first)
+    let probe = try #require(report.cmdData.probes?.first)
 
     // 116.6 Fahrenheit at the tip, 81.9 at the far end.
     #expect(abs((probe.zonesCelsius.first ?? 0) - 47.0) < 0.1)

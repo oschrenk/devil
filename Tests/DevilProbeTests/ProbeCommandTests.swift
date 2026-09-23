@@ -77,3 +77,40 @@ struct ProbeCommandTests {
     }
   }
 }
+
+@Suite("Receipts")
+struct ReceiptTests {
+  private func decode(_ json: String) throws -> ProbeReport {
+    try JSONDecoder().decode(ProbeReport.self, from: Data(json.utf8))
+  }
+
+  /// The refusal that cost an evening. The old model required readings, so a
+  /// receipt threw during decoding and looked exactly like silence.
+  @Test("A refusal decodes, and says what it refused and for whom")
+  func refusal() throws {
+    let report = try decode(#"""
+    {"cmdType": "device:cmd:receipt", "userId": "100000000000000001",
+      "cmdData": {"cmdType": "device:status:request",
+      "executeResult": "failure", "errorCode": 0, "cmdError": 6}}
+    """#)
+    #expect(report.isReceipt)
+    #expect(report.refused)
+    #expect(report.cmdData.cmdError == 6)
+    #expect(report.cmdData.probes == nil)
+    // The account, which is what trust needs and what Devil cannot know.
+    #expect(report.userId == "100000000000000001")
+  }
+
+  /// Trust carries six fields. The others carry none, and sending them would
+  /// be inventing a shape the device never asked for.
+  @Test("Trust names the account, and other commands send nothing")
+  func trustPayload() {
+    let trust = ProbeCommand.applyTrust.json(id: "a", sequence: 1, userId: "123")
+    #expect(trust.contains("\"userId\":\"123\""))
+    #expect(trust.contains("\"mode\":\"direct\""))
+    #expect(trust.contains("\"deviceModel\":\"WT11\""))
+    let status = ProbeCommand.statusRequest.json(id: "a", sequence: 1, userId: "123")
+    #expect(status.contains("\"cmdData\":{}"))
+    #expect(!status.contains("userId"))
+  }
+}

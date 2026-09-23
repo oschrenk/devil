@@ -74,6 +74,18 @@ struct BleCaptureView: View {
         }
       }
 
+      if capture.isConnected, capture.canAsk {
+        Section {
+          ForEach(ProbeCommand.allCases, id: \.rawValue) { command in
+            Button(command.rawValue) { capture.ask(command) }
+          }
+        } header: {
+          Text("Ask")
+        } footer: {
+          Text("Writes a ThermoMaven request and logs it beside the replies.")
+        }
+      }
+
       if !capture.map.isEmpty {
         Section("Characteristics") {
           ForEach(capture.map, id: \.self) { line in

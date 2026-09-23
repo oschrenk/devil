@@ -39,6 +39,19 @@ final class ProbeConnection: NSObject {
   /// How many reports have decoded. What a view watches, because two
   /// identical readings are still two readings.
   private(set) var reports = 0
+  /// Whether `ff01` turned up. Without it nothing can be asked, and the row
+  /// would wait for ever with no sign of why.
+  private(set) var canWrite = false
+  /// Frames written, and frames received. Silence has several causes and
+  /// these separate them: nothing sent is a different fault from nothing
+  /// answered.
+  private(set) var framesSent = 0
+  private(set) var framesHeard = 0
+  /// Learned from a receipt rather than configured. The base station names
+  /// the account in every reply, including the ones refusing a command.
+  private(set) var userId: String?
+  /// The last refusal's code, so a silent row can say why it is silent.
+  private(set) var refusal: Int?
 
   private var rememberedID: UUID? {
     get { UserDefaults.standard.string(forKey: Self.key).flatMap(UUID.init(uuidString:)) }
@@ -104,7 +117,7 @@ final class ProbeConnection: NSObject {
     guard let peripheral, let characteristic = writePort else { return }
     asked += 1
     guard let frames = command.frames(
-      id: ProbeCommand.newID(), sequence: asked, from: outgoing
+      id: ProbeCommand.newID(), sequence: asked, from: outgoing, userId: userId
     ) else { return }
 
     let kind: CBCharacteristicWriteType =
@@ -112,6 +125,7 @@ final class ProbeConnection: NSObject {
     for frame in frames {
       peripheral.writeValue(Data(frame), for: characteristic, type: kind)
       outgoing = outgoing &+ 1
+      framesSent += 1
     }
   }
 
@@ -178,7 +192,11 @@ extension ProbeConnection: CBCentralManagerDelegate {
   func centralManager(_: CBCentralManager, didConnect peripheral: CBPeripheral) {
     blufi = BlufiDecoder()
     writePort = nil
+    canWrite = false
     outgoing = 0
+    refusal = nil
+    framesSent = 0
+    framesHeard = 0
     peripheral.discoverServices([service])
   }
 
@@ -212,6 +230,7 @@ extension ProbeConnection: CBPeripheralDelegate {
     for characteristic in service.characteristics ?? [] {
       if characteristic.uuid == write {
         writePort = characteristic
+        canWrite = true
       }
       if characteristic.uuid == notify {
         peripheral.setNotifyValue(true, for: characteristic)
@@ -237,11 +256,25 @@ extension ProbeConnection: CBPeripheralDelegate {
     error _: Error?
   ) {
     guard let value = characteristic.value else { return }
+    framesHeard += 1
     for message in blufi.append([UInt8](value)) {
-      guard let found = ProbeReport.decode(message: message)?.cmdData.probes.first
-      else { continue }
-      probe = found
-      reports += 1
+      guard let report = ProbeReport.decode(message: message) else { continue }
+      if let found = report.cmdData.probes?.first {
+        probe = found
+        reports += 1
+        refusal = nil
+        continue
+      }
+      guard report.isReceipt else { continue }
+      refusal = report.refused ? report.cmdData.cmdError : nil
+      // The first refusal is the useful one: it names the account, and trust
+      // needs the account. Ask again now that we know it.
+      if let learned = report.userId, learned != userId {
+        userId = learned
+        Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
+          self?.ask()
+        }
+      }
     }
   }
 }

@@ -10,12 +10,32 @@ import Foundation
 public struct ProbeReport: Decodable, Sendable {
   public var cmdType: String
   public var cmdData: Body
+  /// The account the base station thinks it belongs to.
+  ///
+  /// It volunteers this in every receipt, including the ones refusing a
+  /// command. That is how Devil learns the id that `BT:apply:trust` wants,
+  /// rather than being told it.
+  public var userId: String?
 
   public struct Body: Decodable, Sendable {
     /// The base station's own battery, as a percentage.
     public var batteryValue: Int?
     public var wifiRssi: Int?
-    public var probes: [Probe]
+    /// Absent on a receipt, which carries an outcome rather than readings.
+    public var probes: [Probe]?
+    /// `success` or `failure`, on a receipt.
+    public var executeResult: String?
+    public var cmdError: Int?
+    /// Which command this receipt answers.
+    public var cmdType: String?
+  }
+
+  public var isReceipt: Bool {
+    cmdType == "device:cmd:receipt"
+  }
+
+  public var refused: Bool {
+    cmdData.executeResult == "failure"
   }
 
   public struct Probe: Decodable, Sendable {
@@ -49,6 +69,8 @@ public struct ProbeReport: Decodable, Sendable {
     guard let package = BtProtocolPackage.parse(message),
           let json = Zstd.decompress(package.body, expecting: package.expandedCount)
     else { return nil }
+    // Every message decodes, receipts included. Requiring readings meant a
+    // refusal threw and looked exactly like silence, which cost an evening.
     return try? JSONDecoder().decode(ProbeReport.self, from: Data(json))
   }
 }

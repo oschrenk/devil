@@ -25,10 +25,27 @@ public enum ProbeCommand: String, Sendable, CaseIterable {
   /// `cmdId` is a bare hexadecimal string in every captured report, and the
   /// sequence number is a string rather than a number, which is theirs rather
   /// than a mistake here.
-  public func json(id: String, sequence: Int) -> String {
+  ///
+  /// `BT:apply:trust` needs an account. The device volunteers one in every
+  /// receipt it sends, so Devil learns it rather than being told it: send
+  /// anything, read the `userId` off the refusal, and apply trust with it.
+  public func json(id: String, sequence: Int, userId: String? = nil) -> String {
     """
     {"cmdType":"\(rawValue)","cmdId":"\(id)","cmdSeqNo":"\(sequence)",\
-    "protocol":"1.0","cmdData":{}}
+    "protocol":"BT","cmdData":\(data(userId: userId))}
+    """
+  }
+
+  /// Trust carries six fields, and the rest carry none.
+  ///
+  /// The units are display preferences and the wire stays Fahrenheit either
+  /// way, but the field is not optional. `direct` rather than `pair`, because
+  /// this is a probe already paired to the base station.
+  private func data(userId: String?) -> String {
+    guard self == .applyTrust else { return "{}" }
+    return """
+    {"userId":"\(userId ?? "")","deviceModel":"WT11","mode":"direct",\
+    "temperatureUnit":"C","lengthUnit":"cm","weightUnit":"g"}
     """
   }
 
@@ -36,8 +53,13 @@ public enum ProbeCommand: String, Sendable, CaseIterable {
   ///
   /// `nil` when compression fails, which would mean a broken zstd rather than
   /// a bad command, and sending half a message is worse than sending none.
-  public func frames(id: String, sequence: Int, from frame: UInt8) -> [[UInt8]]? {
-    let raw = Array(json(id: id, sequence: sequence).utf8)
+  public func frames(
+    id: String,
+    sequence: Int,
+    from frame: UInt8,
+    userId: String? = nil
+  ) -> [[UInt8]]? {
+    let raw = Array(json(id: id, sequence: sequence, userId: userId).utf8)
     guard let body = Zstd.compress(raw) else { return nil }
     let message = BtProtocolPackage.wrap(body: body, expanding: raw)
     return BlufiWriter.frames(for: message, startingAt: frame)

@@ -40,6 +40,9 @@ final class BleCapture: NSObject {
 
   private var central: CBCentralManager?
   private var peripheral: CBPeripheral?
+  private var writePort: CBCharacteristic?
+  private var outgoing: UInt8 = 0
+  private var asked = 0
   private var blufi = BlufiDecoder()
 
   func begin() {
@@ -72,6 +75,32 @@ final class BleCapture: NSObject {
   func disconnect() {
     if let peripheral {
       central?.cancelPeripheralConnection(peripheral)
+    }
+  }
+
+  /// Whether anything here can be asked a question.
+  var canAsk: Bool {
+    writePort != nil
+  }
+
+  /// Sends a ThermoMaven request, and logs the bytes alongside the replies.
+  ///
+  /// The point of doing it here rather than only in `ProbeConnection`: this
+  /// screen records what goes out as well as what comes back, so a request
+  /// that is ignored and one that is malformed can be told apart afterwards.
+  func ask(_ command: ProbeCommand) {
+    guard let peripheral, let characteristic = writePort else { return }
+    asked += 1
+    guard let frames = command.frames(
+      id: ProbeCommand.newID(), sequence: asked, from: outgoing
+    ) else { return }
+
+    let kind: CBCharacteristicWriteType =
+      characteristic.properties.contains(.writeWithoutResponse) ? .withoutResponse : .withResponse
+    for frame in frames {
+      peripheral.writeValue(Data(frame), for: characteristic, type: kind)
+      outgoing = outgoing &+ 1
+      record("sent \(command.rawValue)", frame)
     }
   }
 
@@ -144,6 +173,8 @@ extension BleCapture: CBCentralManagerDelegate {
   func centralManager(_: CBCentralManager, didConnect peripheral: CBPeripheral) {
     isConnected = true
     map = []
+    writePort = nil
+    outgoing = 0
     blufi = BlufiDecoder()
     status = "\(peripheral.name ?? "Device"), mapping"
     peripheral.discoverServices(nil)
@@ -181,6 +212,10 @@ extension BleCapture: CBPeripheralDelegate {
         + "  \(properties(characteristic.properties))")
       // Everything that will talk, not one at a time. Which characteristic
       // carries the data is the question, so subscribe to all of them.
+      let writable: CBCharacteristicProperties = [.write, .writeWithoutResponse]
+      if !characteristic.properties.isDisjoint(with: writable), writePort == nil {
+        writePort = characteristic
+      }
       let talks: CBCharacteristicProperties = [.notify, .indicate]
       if !characteristic.properties.isDisjoint(with: talks) {
         peripheral.setNotifyValue(true, for: characteristic)
@@ -200,7 +235,7 @@ extension BleCapture: CBPeripheralDelegate {
     // The raw capture is still the evidence. This is a reading taken from it,
     // and both go in the log so a wrong decode is visible against the bytes.
     for message in blufi.append(bytes) {
-      guard let found = ProbeReport.decode(message: message)?.cmdData.probes.first
+      guard let found = ProbeReport.decode(message: message)?.cmdData.probes?.first
       else { continue }
       probe = found
       reports += 1

@@ -155,6 +155,19 @@ struct ContentView: View {
             ProbeRow(state: probe.state, zone: probe.probe?.zonesCelsius.first)
           }
           .tint(.primary)
+          // Shown only while a probe is connected and silent. Waiting has
+          // several causes, and these separate them: no write channel, or
+          // nothing written, or written and ignored.
+          if probe.state.isConnected, probe.probe == nil {
+            LabelledValue(label: "Can ask", value: probe.canWrite ? "yes" : "NO")
+            LabelledValue(label: "Sent", value: "\(probe.framesSent)")
+            LabelledValue(label: "Heard", value: "\(probe.framesHeard)")
+            LabelledValue(label: "Account", value: probe.userId ?? "unknown")
+            if let refusal = probe.refusal {
+              LabelledValue(label: "Refused", value: "error \(refusal)")
+            }
+            Button("Ask again") { probe.ask() }
+          }
         }
 
         Section {
