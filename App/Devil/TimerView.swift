@@ -66,8 +66,7 @@ struct TimerView: View {
   private func finish() {
     guard startSignal.hasSent else { return dismiss() }
     if now.isComplete {
-      save()
-      dismiss()
+      keep()
     } else {
       // Only you know whether 0:30 was a fumble or a short brew on purpose.
       askingToSave = true
@@ -89,9 +88,13 @@ struct TimerView: View {
     return store.brews().first { $0.id == stem }
   }
 
-  /// The offer at the end. Right after drinking is the one moment you would
-  /// write down how it tasted, and the log fills only if the app says so.
-  private func addNotes() {
+  /// Writes the brew and opens it.
+  ///
+  /// Every brew that reaches a file gets this, however it ended. The screen
+  /// that follows is where the drink is weighed and the note is typed, and
+  /// right after brewing is the one moment you would do either. A brew that
+  /// stopped early still made coffee worth weighing.
+  private func keep() {
     notesFor = save()
     dismiss()
   }
@@ -254,11 +257,6 @@ struct TimerView: View {
         Button(clock.isHeld ? "Resume" : "Pause", action: toggleHold)
           .fontWeight(.semibold)
       }
-      if hasFinished {
-        ToolbarItem(placement: .topBarTrailing) {
-          Button("Add notes", action: addNotes)
-        }
-      }
       ToolbarItem(placement: .topBarTrailing) {
         // `Done`, and not red. Reaching the end of a recipe is the ordinary
         // way out, and a destructive button reads as abandoning the brew.
@@ -271,10 +269,7 @@ struct TimerView: View {
       isPresented: $askingToSave,
       titleVisibility: .visible
     ) {
-      Button("Save") {
-        save()
-        dismiss()
-      }
+      Button("Save", action: keep)
       Button("Discard", role: .destructive) { dismiss() }
     } message: {
       Text("It stopped before the end.")
