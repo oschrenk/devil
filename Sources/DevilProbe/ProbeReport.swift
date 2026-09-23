@@ -30,7 +30,7 @@ public struct ProbeReport: Decodable, Sendable {
     ///
     /// The vendor's app shows this as `Meat`, because the coldest point is
     /// what decides whether meat is done. It is the wrong number for coffee,
-    /// and `tipCelsius` is the right one.
+    /// and `areaTemperature` holds the measured ones.
     public var curTemperature: Int
     /// Five sensors along the shaft, tip first. These are measured.
     public var areaTemperature: [Int]
@@ -54,14 +54,6 @@ public struct ProbeReport: Decodable, Sendable {
 }
 
 public extension ProbeReport.Probe {
-  /// The tip, in the units the rest of the app speaks.
-  ///
-  /// The first zone, which is the sensor at the pointed end. Deliberately not
-  /// `curTemperature`, which is the coldest zone wherever it happens to be.
-  var tipCelsius: Double? {
-    areaTemperature.first.map(ProbeReport.celsius(tenthsFahrenheit:))
-  }
-
   /// The coldest of the five, as the device computes it. What the vendor's app
   /// calls `Meat`.
   var coldestCelsius: Double {
@@ -72,7 +64,9 @@ public extension ProbeReport.Probe {
     ProbeReport.celsius(tenthsFahrenheit: curAmbientTemperature)
   }
 
-  /// All five sensors, tip first.
+  /// All five sensors, in order along the shaft. Zone one is at the pointed
+  /// end, and there is no name for it beyond its number: naming one of the
+  /// five invites reaching for the wrong one.
   var zonesCelsius: [Double] {
     areaTemperature.map(ProbeReport.celsius(tenthsFahrenheit:))
   }

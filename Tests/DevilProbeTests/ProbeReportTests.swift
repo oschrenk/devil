@@ -52,17 +52,17 @@ struct ProbeReportTests {
   @Test("Tenths of Fahrenheit convert to what the app displayed")
   func units() throws {
     let probe = try #require(ProbeReport.decode(message: bytes(captured))?.cmdData.probes.first)
-    #expect(abs((probe.tipCelsius ?? 0) - 25.6) < 0.1)
+    #expect(abs((probe.zonesCelsius.first ?? 0) - 25.6) < 0.1)
     #expect(abs(probe.ambientCelsius - 25.6) < 0.1)
     #expect(probe.zonesCelsius.count == 5)
     // 1580 tenths of Fahrenheit is the 70 degree target the app showed.
     #expect(abs(ProbeReport.celsius(tenthsFahrenheit: 1580) - 70) < 0.01)
   }
 
-  /// `curTemperature` is the coldest zone, not the tip. It matched the tip in
-  /// 58 of 123 captured readings and the minimum in all 123, so a sample where
-  /// the tip is hottest is the one that tells them apart.
-  @Test("The tip is the first zone, and the device's own figure is the coldest")
+  /// `curTemperature` is the coldest zone, not zone one. It matched zone one
+  /// in 58 of 123 captured readings and the minimum in all 123, so a sample
+  /// where zone one is hottest is the one that tells them apart.
+  @Test("Zone one is measured, and the device's own figure is the coldest")
   func tipIsNotTheColdest() throws {
     // Captured shape, with the tip in hot water and the shaft still in air.
     let json = #"""
@@ -75,9 +75,9 @@ struct ProbeReportTests {
     let probe = try #require(report.cmdData.probes.first)
 
     // 116.6 Fahrenheit at the tip, 81.9 at the far end.
-    #expect(abs((probe.tipCelsius ?? 0) - 47.0) < 0.1)
+    #expect(abs((probe.zonesCelsius.first ?? 0) - 47.0) < 0.1)
     #expect(abs(probe.coldestCelsius - 27.7) < 0.1)
-    #expect(probe.tipCelsius != probe.coldestCelsius)
+    #expect(probe.zonesCelsius.first != probe.coldestCelsius)
     // The device's figure is the minimum, which is what makes it wrong here.
     #expect(probe.curTemperature == probe.areaTemperature.min())
   }

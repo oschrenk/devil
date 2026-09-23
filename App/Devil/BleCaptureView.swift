@@ -58,7 +58,7 @@ struct BleCaptureView: View {
       if let probe = capture.probe {
         Section {
           ForEach(Array(probe.zonesCelsius.enumerated()), id: \.offset) { index, zone in
-            LabeledContent(index == 0 ? "Tip" : "Zone \(index + 1)", value: degrees(zone))
+            LabeledContent("Zone \(index + 1)", value: degrees(zone))
           }
           LabeledContent("Ambient", value: degrees(probe.ambientCelsius))
           LabeledContent("Coldest", value: degrees(probe.coldestCelsius))
