@@ -1,4 +1,6 @@
 @preconcurrency import CoreBluetooth
+import DevilKit
+import DevilProbe
 import Foundation
 
 /// A Bluetooth device recorder.
@@ -28,12 +30,17 @@ final class BleCapture: NSObject {
   private(set) var map: [String] = []
   private(set) var frames: [Frame] = []
   private(set) var isConnected = false
+  /// The last status report the device sent, decoded. `nil` until one arrives
+  /// whole, which needs three frames.
+  private(set) var probe: ProbeReport.Probe?
+  private(set) var reports = 0
 
   /// Enough for a long temperature sweep, and small enough to hold in memory.
   private static let limit = 4000
 
   private var central: CBCentralManager?
   private var peripheral: CBPeripheral?
+  private var blufi = BlufiDecoder()
 
   func begin() {
     guard central == nil else { return }
@@ -137,6 +144,7 @@ extension BleCapture: CBCentralManagerDelegate {
   func centralManager(_: CBCentralManager, didConnect peripheral: CBPeripheral) {
     isConnected = true
     map = []
+    blufi = BlufiDecoder()
     status = "\(peripheral.name ?? "Device"), mapping"
     peripheral.discoverServices(nil)
   }
@@ -189,6 +197,14 @@ extension BleCapture: CBPeripheralDelegate {
     guard let value = characteristic.value else { return }
     let bytes = [UInt8](value)
     record(short(characteristic.uuid), bytes)
+    // The raw capture is still the evidence. This is a reading taken from it,
+    // and both go in the log so a wrong decode is visible against the bytes.
+    for message in blufi.append(bytes) {
+      guard let found = ProbeReport.decode(message: message)?.cmdData.probes.first
+      else { continue }
+      probe = found
+      reports += 1
+    }
   }
 
   /// `0000ff02-0000-1000-8000-00805f9b34fb` is `ff02` and nothing else.

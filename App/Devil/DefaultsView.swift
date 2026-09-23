@@ -38,7 +38,7 @@ struct DefaultsView: View {
       Section {
         NavigationLink("Capture") { BleCaptureView() }
       } footer: {
-        Text("Records an unknown Bluetooth device and shares the frames as a file.")
+        Text("Records a Bluetooth device, decodes a ThermoMaven, shares the frames.")
       }
 
       Section {

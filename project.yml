@@ -44,6 +44,8 @@ targets:
     dependencies:
       - package: DevilKit
         product: DevilKit
+      - package: DevilKit
+        product: DevilProbe
       # Embeds the extension in the app, which is how a Live Activity ships.
       - target: DevilActivity
     # `UIBackgroundModes` is an array, and INFOPLIST_KEY_ settings write only

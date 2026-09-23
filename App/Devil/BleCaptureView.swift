@@ -1,3 +1,5 @@
+import DevilKit
+import DevilProbe
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -53,6 +55,24 @@ struct BleCaptureView: View {
         }
       }
 
+      if let probe = capture.probe {
+        Section {
+          LabeledContent("Tip", value: degrees(probe.tipCelsius))
+          ForEach(Array(probe.zonesCelsius.enumerated()), id: \.offset) { index, zone in
+            LabeledContent("Zone \(index + 1)", value: degrees(zone))
+          }
+          LabeledContent("Ambient", value: degrees(probe.ambientCelsius))
+          if let battery = probe.batteryValue {
+            LabeledContent("Probe battery", value: "\(battery) %")
+          }
+        } header: {
+          Text("Probe")
+        } footer: {
+          Text("\(capture.reports) reports. The wire carries tenths of a degree "
+            + "Fahrenheit; these are converted.")
+        }
+      }
+
       if !capture.map.isEmpty {
         Section("Characteristics") {
           ForEach(capture.map, id: \.self) { line in
@@ -99,6 +119,10 @@ struct BleCaptureView: View {
     .navigationTitle("Capture")
     .navigationBarTitleDisplayMode(.inline)
     .onDisappear { capture.stopScanning() }
+  }
+
+  private func degrees(_ value: Double) -> String {
+    String(format: "%.1f \u{00B0}C", value)
   }
 
   /// Written into Documents, so the share sheet has a real file to hand over
