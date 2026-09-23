@@ -46,6 +46,19 @@ targets:
         product: DevilKit
       # Embeds the extension in the app, which is how a Live Activity ships.
       - target: DevilActivity
+    # `UIBackgroundModes` is an array, and INFOPLIST_KEY_ settings write only
+    # scalars, so it needs a real file the way the extension's does. Xcode
+    # merges the generated keys into this one, so the settings below still
+    # apply and this spec is still the only thing to edit.
+    #
+    # It keeps the Bluetooth link alive while another app is in front. A
+    # capture of an unknown device is worthless if it stops the moment you
+    # switch to the vendor's app to read what its display says.
+    info:
+      path: App/Devil/Info.plist
+      properties:
+        UIBackgroundModes:
+          - bluetooth-central
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(BUNDLE_PREFIX).devil
@@ -57,6 +70,10 @@ targets:
         # The only explanation anyone reads, so it says why, not what.
         INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: >-
           Devil connects to your Acaia scale to time the brew and weigh each pour.
+        # Keeps the Bluetooth link alive while another app is in front. A
+        # capture of an unknown device is useless if it stops the moment you
+        # switch to the vendor's app to read what its display says.
+        INFOPLIST_KEY_UIBackgroundModes: bluetooth-central
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait

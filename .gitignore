@@ -4,6 +4,7 @@
 /Packages
 /Devil.xcodeproj
 # Written by xcodegen from project.yml, like the project itself.
+/App/Devil/Info.plist
 /App/DevilActivity/Info.plist
 xcuserdata/
 DerivedData/

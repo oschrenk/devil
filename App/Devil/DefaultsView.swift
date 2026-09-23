@@ -34,6 +34,13 @@ struct DefaultsView: View {
         Text("What you drink from. Its empty weight comes off the total when you weigh a brew.")
       }
 
+      // A spike, reached from here so it is never the root.
+      Section {
+        NavigationLink("Capture") { BleCaptureView() }
+      } footer: {
+        Text("Records an unknown Bluetooth device and shares the frames as a file.")
+      }
+
       Section {
         ForEach(Grinder.all) { grinder in
           ChoiceRow(label: grinder.name, isChosen: grinder == defaults.grinder) {
