@@ -33,6 +33,38 @@ public struct BtProtocolPackage: Equatable, Sendable {
     self.messageCrc = messageCrc
   }
 
+  /// Wraps a compressed body into a message the base station will accept.
+  ///
+  /// The two checksums are the whole difference between reading and writing.
+  /// Reading ignores them, because a corrupt message fails to decompress
+  /// anyway. Writing needs both exactly right: a wrong one and silence look
+  /// the same from here.
+  ///
+  /// `packageCrc` covers the lengths and the compressed body. `messageCrc`
+  /// covers what the body expands to, which the caller already has.
+  public static func wrap(body: [UInt8], expanding raw: [UInt8]) -> [UInt8] {
+    let lengthsAndBody = Self.pair(body.count) + Self.pair(raw.count) + body
+    return header
+      + lengthsAndBody
+      + Crc16.bytes(lengthsAndBody)
+      + Crc16.bytes(raw)
+  }
+
+  /// Little-endian, as `M6.a.c` writes them.
+  static func pair(_ value: Int) -> [UInt8] {
+    [UInt8(value & 0xFF), UInt8((value >> 8) & 0xFF)]
+  }
+
+  /// Whether a message's own checksum agrees with its contents.
+  ///
+  /// Nothing calls this on the read path, where a bad message fails to
+  /// decompress. It is here so a written message can be checked against the
+  /// same rule that will judge it.
+  public var packageCrcMatches: Bool {
+    let lengthsAndBody = Self.pair(body.count) + Self.pair(expandedCount) + body
+    return Crc16.bytes(lengthsAndBody) == packageCrc
+  }
+
   /// Reads a reassembled message, or `nil` when it is not one.
   public static func parse(_ bytes: [UInt8]) -> BtProtocolPackage? {
     guard bytes.count > overhead,

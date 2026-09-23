@@ -49,10 +49,15 @@ final class ProbeConnection: NSObject {
   // Instance rather than static: CBUUID is not Sendable.
   private let service = CBUUID(string: "0000FFFF-0000-1000-8000-00805F9B34FB")
   private let notify = CBUUID(string: "0000FF02-0000-1000-8000-00805F9B34FB")
+  private let write = CBUUID(string: "0000FF01-0000-1000-8000-00805F9B34FB")
 
   private var central: CBCentralManager?
   private var peripheral: CBPeripheral?
   private var blufi = BlufiDecoder()
+  private var writePort: CBCharacteristic?
+  /// Counts frames, not messages, because BluFi's sequence does.
+  private var outgoing: UInt8 = 0
+  private var asked = 0
 
   /// Built on first use, never at launch, so iOS raises the Bluetooth prompt
   /// when you ask for a probe rather than when you open the app.
@@ -76,6 +81,38 @@ final class ProbeConnection: NSObject {
     rememberedID = device.id
     stopScanning()
     connectToRemembered()
+  }
+
+  /// Asks the base station to talk.
+  ///
+  /// It streams because something requests it. Their app sends
+  /// `BT:apply:trust` on connect and then its requests, and Devil used to
+  /// only listen, so nothing arrived unless that app was open doing the
+  /// asking.
+  ///
+  /// Trust first, then the status request, with a moment between them. The
+  /// device replies to trust with a receipt, and asking before it has
+  /// answered is talking over it.
+  func ask() {
+    send(.applyTrust)
+    Timer.scheduledTimer(withTimeInterval: 0.6, repeats: false) { [weak self] _ in
+      self?.send(.statusRequest)
+    }
+  }
+
+  func send(_ command: ProbeCommand) {
+    guard let peripheral, let characteristic = writePort else { return }
+    asked += 1
+    guard let frames = command.frames(
+      id: ProbeCommand.newID(), sequence: asked, from: outgoing
+    ) else { return }
+
+    let kind: CBCharacteristicWriteType =
+      characteristic.properties.contains(.writeWithoutResponse) ? .withoutResponse : .withResponse
+    for frame in frames {
+      peripheral.writeValue(Data(frame), for: characteristic, type: kind)
+      outgoing = outgoing &+ 1
+    }
   }
 
   func forget() {
@@ -140,6 +177,8 @@ extension ProbeConnection: CBCentralManagerDelegate {
 
   func centralManager(_: CBCentralManager, didConnect peripheral: CBPeripheral) {
     blufi = BlufiDecoder()
+    writePort = nil
+    outgoing = 0
     peripheral.discoverServices([service])
   }
 
@@ -161,7 +200,7 @@ extension ProbeConnection: CBCentralManagerDelegate {
 extension ProbeConnection: CBPeripheralDelegate {
   func peripheral(_ peripheral: CBPeripheral, didDiscoverServices _: Error?) {
     for found in peripheral.services ?? [] {
-      peripheral.discoverCharacteristics([notify], for: found)
+      peripheral.discoverCharacteristics([notify, write], for: found)
     }
   }
 
@@ -170,8 +209,13 @@ extension ProbeConnection: CBPeripheralDelegate {
     didDiscoverCharacteristicsFor service: CBService,
     error _: Error?
   ) {
-    for characteristic in service.characteristics ?? [] where characteristic.uuid == notify {
-      peripheral.setNotifyValue(true, for: characteristic)
+    for characteristic in service.characteristics ?? [] {
+      if characteristic.uuid == write {
+        writePort = characteristic
+      }
+      if characteristic.uuid == notify {
+        peripheral.setNotifyValue(true, for: characteristic)
+      }
     }
   }
 
@@ -182,6 +226,9 @@ extension ProbeConnection: CBPeripheralDelegate {
   ) {
     guard characteristic.uuid == notify, characteristic.isNotifying else { return }
     state = .connected(name: peripheral.name ?? "Probe")
+    // Asking goes here rather than in characteristic discovery. A request
+    // sent before the subscription is live has nowhere to be answered.
+    ask()
   }
 
   func peripheral(
