@@ -13,11 +13,20 @@ struct PourGraph: View {
   /// Empty when no probe is connected, and then nothing below draws.
   var heat = HeatTrace()
   var zone = 0
+  /// Takes the height the stack leaves instead of the phone's cap. A canvas
+  /// with hundreds of spare points has nothing else to put there.
+  var fillsCanvas = false
 
   /// About one point per two screen points across the width of a phone. Beyond
   /// that the extra readings land on pixels already drawn, and redrawing them
   /// ten times a second costs frames for a line nobody can see.
   private static let drawnPoints = 200
+
+  /// What a phone allows, which is the cap this view has always had.
+  private static let compactCap: Double = 200
+
+  /// Below this the line is a smear whatever the canvas.
+  private static let shortest: Double = 110
 
   private var drawn: [[PourSample]] {
     // Held inside the frame. Lifting the server reads well below zero, and a
@@ -108,8 +117,10 @@ struct PourGraph: View {
     .chartLegend(.hidden)
     // Grows into whatever the step card leaves, up to a point. Collapsing the
     // card should buy a taller graph, not hand the graph the whole screen: at
-    // full height it dominates a view whose subject is the clock.
-    .frame(minHeight: 110, maxHeight: 200)
+    // full height it dominates a view whose subject is the clock. That holds on
+    // a phone, where the cap leaves 180 points over. On a canvas with hundreds
+    // spare the cap leaves them blank, so there the graph takes them.
+    .frame(minHeight: Self.shortest, maxHeight: fillsCanvas ? .infinity : Self.compactCap)
     .padding(.top, 14)
     .padding(.bottom)
   }

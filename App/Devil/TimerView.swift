@@ -21,6 +21,7 @@ struct TimerView: View {
   let store = BrewLogStore()
 
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.horizontalSizeClass) private var widthClass
   @State private var clock = BrewClock()
   @State private var startSignal = BrewStartSignal()
   @State private var pausedBy = PauseSource.phone
@@ -39,6 +40,12 @@ struct TimerView: View {
   /// Read by the toolbar, which lives outside the timeline and so learns
   /// nothing from the tick. A change here redraws it once, at the end.
   @State private var hasFinished = false
+
+  /// An iPad, in either orientation. A phone is compact in portrait, and the
+  /// phone is locked to portrait.
+  private var hasRoom: Bool {
+    widthClass == .regular
+  }
 
   /// Reads the clock itself rather than borrowing the timeline's tick, which is
   /// what lets the toolbar live outside the per-second redraw.
@@ -142,8 +149,12 @@ struct TimerView: View {
         // foot of the screen it read as a separate panel, with the reading it
         // explains an inch away.
         if seconds > 0, !drawnTrace.samples.isEmpty {
-          PourGraph(recipe: recipe, trace: drawnTrace, heat: heat)
-          Spacer(minLength: 0)
+          PourGraph(recipe: recipe, trace: drawnTrace, heat: heat, fillsCanvas: hasRoom)
+          // The chart takes the slack itself when it is allowed to, and a
+          // spacer here would halve it by competing for the same space.
+          if !hasRoom {
+            Spacer(minLength: 0)
+          }
         } else {
           Spacer(minLength: 0)
           Schedule(recipe: recipe, progress: progress)

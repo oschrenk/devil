@@ -78,7 +78,12 @@ targets:
         INFOPLIST_KEY_UIBackgroundModes: bluetooth-central
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
-        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        # Suffixed, not the one generic `UISupportedInterfaceOrientations`, which
+        # covers both idioms and so held the iPad in portrait with the phone.
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: >-
+          UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown
+          UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
         # Without this the app may start no Live Activity at all, and the
         # failure is a thrown error rather than anything visible.
         INFOPLIST_KEY_NSSupportsLiveActivities: YES
